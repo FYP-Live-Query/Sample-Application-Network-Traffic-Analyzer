@@ -1,4 +1,8 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Network Traffic Analyzer - Backend
+
+```
+npm start
+```
 
 ## Available Scripts
 
