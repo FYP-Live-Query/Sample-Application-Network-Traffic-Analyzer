@@ -11,30 +11,30 @@ import {
 } from '@chakra-ui/react';
 import { ColorModeSwitcher } from './ColorModeSwitcher';
 import { Logo } from './Logo';
+import DataTable from './DataTable';
+import WebBrowsers from './WebBrowsers';
+import { Flex } from '@chakra-ui/react';
 
 function App() {
   return (
     <ChakraProvider theme={theme}>
-      <Box textAlign="center" fontSize="xl">
-        <Grid minH="100vh" p={3}>
-          <ColorModeSwitcher justifySelf="flex-end" />
-          <VStack spacing={8}>
-            <Logo h="40vmin" pointerEvents="none" />
-            <Text>
-              Edit <Code fontSize="xl">src/App.js</Code> and save to reload.
-            </Text>
-            <Link
-              color="teal.500"
-              href="https://chakra-ui.com"
-              fontSize="2xl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learn Chakra
-            </Link>
-          </VStack>
-        </Grid>
+      <Box bg='#423F23' w='100%' p={4} color='white' textAlign={"center"} fontFamily="Roboto" fontSize="6xl" letterSpacing="30px">
+        NETWORK TRAFFIC ANALYZER
       </Box>
+
+      <Flex color='white'>
+            <Box bg='#47465B' flex='5' padding={'25'}>
+             <b> Website: </b> Securities and Exchange Commission
+            </Box>
+            <Box bg='#47465B' flex='1' padding={'25'}>
+            <b> URL: </b> <Link>https://www.sec.gov</Link>
+            </Box>
+        </Flex>
+      
+
+      <DataTable></DataTable>
+
+      <WebBrowsers></WebBrowsers>
     </ChakraProvider>
   );
 }
