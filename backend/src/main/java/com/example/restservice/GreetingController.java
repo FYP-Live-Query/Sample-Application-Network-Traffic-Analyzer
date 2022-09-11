@@ -1,29 +1,33 @@
 package com.example.restservice;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.concurrent.*;
 
-import com.arangodb.velocypack.VPackSlice;
 //import com.c8db.C8DB;
 //import com.c8db.http.HTTPEndPoint;
 //import com.c8db.http.HTTPMethod;
 //import com.c8db.http.HTTPRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import com.google.gson.Gson;
+import io.siddhi.core.SiddhiAppRuntime;
+import io.siddhi.core.SiddhiManager;
+import io.siddhi.core.query.output.callback.QueryCallback;
+import io.siddhi.core.util.persistence.InMemoryPersistenceStore;
+import io.siddhi.core.util.persistence.PersistenceStore;
+import io.siddhi.core.event.Event;
+import io.siddhi.core.util.EventPrinter;
+import io.siddhi.extension.io.live.source.LiveSource;
+import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.security.auth.login.CredentialException;
+
+
+
 
 @Controller
 public class GreetingController {
@@ -31,33 +35,88 @@ public class GreetingController {
 
     @GetMapping("/sse")
     @CrossOrigin
-    public SseEmitter handleSse() throws CredentialException, IOException {
+    public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
+
+        BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
+        System.out.println("sse req arrived");
+
+        Runnable siddhi = new Runnable() {
+            @Override
+            public void run() {
+                PersistenceStore persistenceStore = new InMemoryPersistenceStore();
+                SiddhiManager siddhiManager = new SiddhiManager();
+                siddhiManager.setPersistenceStore(persistenceStore);
+                siddhiManager.setExtension("live", LiveSource.class);
+                siddhiManager.setExtension("map-json", JsonSourceMapper.class);
+                String inStreamDefinition0 = "@App:name('TestSiddhiApp0')" +
+                        "@source(type='live',sql.query='FOR t IN network_traffic SORT t.traffic DESC LIMIT 5 RETURN t', " +
+                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                        "api.key = 'madu140_gmail.com." +
+                        "AccessPortal.2PL8EeyIAMn2sx7YHKWMM58tmJLES4NyIWq6Cnsj0BTMjygJyF3b14zb2sidcauXccccb8', " +
+                        " @map(type='json', fail.on.missing.attribute='false') )" +
+                        "define stream inputStream (id String,key String,revision String,properties String);";
+
+                String query0 = ("@sink(type = 'log')" +
+                        "define stream OutputStream (id String,key String,revision String,properties String);" +
+                        "@info(name = 'query0') "
+                        + "from inputStream "
+                        + "select * "
+                        + "insert into outputStream;"
+                );
+                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
+                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
 
 
 
-//        C8DB db = (new C8DB.Builder()).hostName("api-varden-4f0f3c4f.paas.macrometa.io").port(443).apiKey("madu140_gmail.com.AccessPortal.2PL8EeyIAMn2sx7YHKWMM58tmJLES4NyIWq6Cnsj0BTMjygJyF3b14zb2sidcauXccccb8").build();
-//        HTTPEndPoint endPoint = new HTTPEndPoint("/_fabric/_system/_api/collection/network_traffic/count");
-//        HTTPRequest request = (new HTTPRequest.Builder()).RequestType(HTTPMethod.GET).EndPoint(endPoint).build();
-//        db.execute(request);
-//
-//
-//        VPackSlice r = db.execute(request);
-//        System.out.println(r.toString());
+                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                    @Override
+                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
+                        try {
+                            events.put(inEvents);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    }
+                });
+                siddhiAppRuntime0.start();
+            }
+        };
         SseEmitter emitter = new SseEmitter();
-        nonBlockingService.execute(() -> {
-//            for (int i = 0; i < 10; i++) {
-                try {
-//                    emitter.send("Add Data" + " - " + new Date());
-                    // we could send more events
-                    emitter.send(new Date());
+        Runnable sse = new Runnable() {
+            @Override
+            public void run() {
+
+                nonBlockingService.execute(() -> {
+                    try {
+
+                        // we could send more events
+                        while(events.isEmpty()) {
+                            Event[] edata = events.take();
+                            emitter.send(edata[0].getData()[3]);
+                            System.out.println(edata[0].getData()[3].toString());
+                            emitter.complete();
+//                            for (i = 0; i < edata.length; i++) {
+//                                emitter.send(edata[i].getData()[3]);
+//                            }
+//                            emitter.complete();
+
+                        }
+
 //                emitter.complete();
-                } catch (Exception ex) {
-                    emitter.completeWithError(ex);
-                }
+                    } catch (Exception ex) {
+                        emitter.completeWithError(ex);
+                    }
 //            }
-            emitter.complete();
-        });
+                });
+
+            }
+        };
+        Thread t = new Thread(siddhi);
+        Thread tb = new Thread(sse);
+        t.start();
+        tb.start();
         return emitter;
     }
 }
