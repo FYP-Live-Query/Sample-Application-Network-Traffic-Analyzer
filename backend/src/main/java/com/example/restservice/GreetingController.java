@@ -32,8 +32,26 @@ import javax.security.auth.login.CredentialException;
 @Controller
 public class GreetingController {
     private final ExecutorService nonBlockingService = Executors.newCachedThreadPool();
+    private final ExecutorService nonBlockingService2 = Executors.newCachedThreadPool();
+    Boolean appCreated = false;
+    SiddhiManager siddhiManager;
+    SiddhiManager siddhiManager1;
+    String query;
+    String browserQuery;
+    String apiKey;
+    public GreetingController() {
+        PersistenceStore persistenceStore = new InMemoryPersistenceStore();
+        this.siddhiManager = new SiddhiManager();
+        this.siddhiManager.setPersistenceStore(persistenceStore);
+        this.siddhiManager.setExtension("live", LiveSource.class);
+        this.siddhiManager.setExtension("map-json", JsonSourceMapper.class);
 
-    @GetMapping("/sse")
+        this.siddhiManager1 = new SiddhiManager();
+        this.siddhiManager1.setPersistenceStore(persistenceStore);
+        this.siddhiManager1.setExtension("live", LiveSource.class);
+        this.siddhiManager1.setExtension("map-json", JsonSourceMapper.class);
+
+    }
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
 
