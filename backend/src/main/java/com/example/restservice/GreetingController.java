@@ -52,6 +52,27 @@ public class GreetingController {
         this.siddhiManager1.setExtension("map-json", JsonSourceMapper.class);
 
     }
+    @PostMapping("/publish")
+    @CrossOrigin
+    public Body publishQuery(@RequestBody Body query) {
+        this.query = query.getQuery();
+        this.apiKey = query.getApiKey();
+//        System.out.println("Data: "+query);
+        System.out.println("Query: "+ this.query);
+        System.out.println("API: "+ this.apiKey);
+        return query;
+    }
+
+    @PostMapping("/browserInfo")
+    @CrossOrigin
+    public Body publishBrowserInfo(@RequestBody Body query) {
+        this.browserQuery = query.getQuery();
+        this.apiKey = query.getApiKey();
+//        System.out.println("Data: "+query);
+        System.out.println("Query: "+ this.query);
+        System.out.println("API: "+ this.apiKey);
+        return query;
+    }
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
 
