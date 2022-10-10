@@ -1,8 +1,10 @@
 package com.example.restservice;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.*;
 
 //import com.c8db.C8DB;
@@ -29,7 +31,7 @@ import javax.security.auth.login.CredentialException;
 
 
 
-@Controller
+@RestController
 public class GreetingController {
     private final ExecutorService nonBlockingService = Executors.newCachedThreadPool();
     private final ExecutorService nonBlockingService2 = Executors.newCachedThreadPool();
@@ -73,53 +75,51 @@ public class GreetingController {
         System.out.println("API: "+ this.apiKey);
         return query;
     }
+    @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
 
         BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
-        System.out.println("sse req arrived");
+//        System.out.println("Query: "+query);
 
         Runnable siddhi = new Runnable() {
             @Override
             public void run() {
-                PersistenceStore persistenceStore = new InMemoryPersistenceStore();
-                SiddhiManager siddhiManager = new SiddhiManager();
-                siddhiManager.setPersistenceStore(persistenceStore);
-                siddhiManager.setExtension("live", LiveSource.class);
-                siddhiManager.setExtension("map-json", JsonSourceMapper.class);
+                while (query == null){
+                    continue;
+                }
                 String inStreamDefinition0 = "@App:name('TestSiddhiApp0')" +
-                        "@source(type='live',sql.query='FOR t IN network_traffic SORT t.traffic DESC LIMIT 5 RETURN t', " +
+                        "@source(type='live',sql.query='"+query+"', " +
                         "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
-                        "api.key = 'madu140_gmail.com." +
-                        "AccessPortal.2PL8EeyIAMn2sx7YHKWMM58tmJLES4NyIWq6Cnsj0BTMjygJyF3b14zb2sidcauXccccb8', " +
+                        "api.key = '"+apiKey+"', " +
                         " @map(type='json', fail.on.missing.attribute='false') )" +
                         "define stream inputStream (id String,key String,revision String,properties String);";
+//                System.out.println("SSS: "+inStreamDefinition0);
+                    String query0 = ("@sink(type = 'log')" +
+                            "define stream OutputStream (id String,key String,revision String,properties String);" +
+                            "@info(name = 'query0') "
+                            + "from inputStream "
+                            + "select * "
+                            + "insert into outputStream;"
+                    );
+                    SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
+                            .createSiddhiAppRuntime(inStreamDefinition0 + query0);
 
-                String query0 = ("@sink(type = 'log')" +
-                        "define stream OutputStream (id String,key String,revision String,properties String);" +
-                        "@info(name = 'query0') "
-                        + "from inputStream "
-                        + "select * "
-                        + "insert into outputStream;"
-                );
-                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
-                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
 
+                    siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                        @Override
+                        public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
+                            try {
+                                events.put(inEvents);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
 
-                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
-                    @Override
-                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-
-                        try {
-                            events.put(inEvents);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
                         }
+                    });
+                    siddhiAppRuntime0.start();
 
-                    }
-                });
-                siddhiAppRuntime0.start();
             }
         };
         SseEmitter emitter = new SseEmitter();
@@ -129,19 +129,27 @@ public class GreetingController {
 
                 nonBlockingService.execute(() -> {
                     try {
-
+                        List<Object> list = new ArrayList<>(5);
                         // we could send more events
                         while(events.isEmpty()) {
                             Event[] edata = events.take();
-                            emitter.send(edata[0].getData()[3]);
-                            System.out.println(edata[0].getData()[3].toString());
-                            emitter.complete();
+                            System.out.println(edata[0].getData()[3]);
+                            list.add(edata[0].getData()[3]);
+                            if(list.size() == 5) {
+                                emitter.send(list);
+                                list.clear();
+                            }
+
 //                            for (i = 0; i < edata.length; i++) {
 //                                emitter.send(edata[i].getData()[3]);
 //                            }
 //                            emitter.complete();
 
                         }
+//                        System.out.println(list.toString());
+
+//                        System.out.println(edata[0].getData()[3].toString());
+//                        emitter.complete();
 
 //                emitter.complete();
                     } catch (Exception ex) {
@@ -239,4 +247,20 @@ public class GreetingController {
 
 
 
+}
+
+class Body {
+    String query;
+    String apiKey;
+    public String getQuery() {
+        return query;
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
+    }
 }
