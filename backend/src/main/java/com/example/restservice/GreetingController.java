@@ -1,10 +1,7 @@
 package com.example.restservice;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 //import com.c8db.C8DB;
@@ -75,6 +72,7 @@ public class GreetingController {
         System.out.println("API: "+ this.apiKey);
         return query;
     }
+
     @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
@@ -88,7 +86,8 @@ public class GreetingController {
                 while (query == null){
                     continue;
                 }
-                String inStreamDefinition0 = "@App:name('TestSiddhiApp0')" +
+                UUID appname = UUID.randomUUID();
+                String inStreamDefinition0 = "@App:name('"+appname.toString()+"')" +
                         "@source(type='live',sql.query='"+query+"', " +
                         "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
                         "api.key = '"+apiKey+"', " +
@@ -122,7 +121,7 @@ public class GreetingController {
 
             }
         };
-        SseEmitter emitter = new SseEmitter();
+        SseEmitter emitter = new SseEmitter(-99l);
         Runnable sse = new Runnable() {
             @Override
             public void run() {
@@ -131,27 +130,20 @@ public class GreetingController {
                     try {
                         List<Object> list = new ArrayList<>(5);
                         // we could send more events
-                        while(events.isEmpty()) {
+                        while(true) {
                             Event[] edata = events.take();
                             System.out.println(edata[0].getData()[3]);
                             list.add(edata[0].getData()[3]);
+                            System.out.println("Length: "+list.size());
                             if(list.size() == 5) {
                                 emitter.send(list);
+                                System.out.println("Sent!");
+//                                emitter.complete();
                                 list.clear();
                             }
-
-//                            for (i = 0; i < edata.length; i++) {
-//                                emitter.send(edata[i].getData()[3]);
-//                            }
-//                            emitter.complete();
-
                         }
-//                        System.out.println(list.toString());
 
-//                        System.out.println(edata[0].getData()[3].toString());
-//                        emitter.complete();
 
-//                emitter.complete();
                     } catch (Exception ex) {
                         emitter.completeWithError(ex);
                     }
@@ -164,6 +156,8 @@ public class GreetingController {
         Thread tb = new Thread(sse);
         t.start();
         tb.start();
+//        t.join();
+//        tb.join();
         return emitter;
     }
 

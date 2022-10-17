@@ -14,10 +14,9 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   Legend,
 } from "recharts";
-
+import Tooltip from '@mui/material/Tooltip';
 const serverBaseURL = "http://localhost:8081";
 
 function createData(source, date, time, traffic) {
@@ -115,8 +114,8 @@ function DataTable() {
           <TableRow>
             <TableCell>Source</TableCell>
             <TableCell align="right">Date</TableCell>
-            <TableCell align="right">Time</TableCell>
-            <TableCell align="right">Traffic</TableCell>
+            <TableCell align="right">Time</TableCell>           
+            <TableCell align="right"><Tooltip title="Amount of downloaded data traffic"><div>Traffic</div></Tooltip></TableCell>
           </TableRow>
         </TableHead>
 
@@ -129,7 +128,7 @@ function DataTable() {
               <TableCell component="th" scope="row">{row.ip}</TableCell>
               <TableCell align="right" >{row.date}</TableCell>
               <TableCell align="right">{row.time}</TableCell>
-              <TableCell align="right">{row.traffic}KB</TableCell>
+              <TableCell align="right">{Math.round(row.traffic/1000)/1000}GB</TableCell>
             </TableRow>
           ))}
         </TableBody>
