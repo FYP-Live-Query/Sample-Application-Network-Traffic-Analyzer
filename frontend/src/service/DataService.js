@@ -9,7 +9,14 @@ class DataService{
         apiKey: localStorage.getItem('apiKey')
       });
 
-    }  
+    }
+
+    postQuery(query) {
+      return axios.post('http://localhost:8081/setQuery', { 
+        query: query,
+        apiKey: localStorage.getItem('apiKey')
+      });
+    }
   }
   
 export default new DataService();

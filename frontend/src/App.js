@@ -17,6 +17,7 @@ import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import Link from '@mui/material/Link';
 import { useState, useEffect } from "react";
+import Editor from "./views/Editor";
 // styles
 import "./App.css";
 
@@ -128,6 +129,7 @@ const App = () => {
           <Route path="/" exact component={Home} />
           <Route path="/profile" component={Profile} />
           <Route path="/external-api" component={ExternalApi} />
+          <Route path="/editor" component={Editor} />
         </Switch>)
         } 
         
