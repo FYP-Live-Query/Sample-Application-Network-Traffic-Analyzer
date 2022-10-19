@@ -1,63 +1,346 @@
 package com.example.restservice;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import com.arangodb.velocypack.VPackSlice;
 //import com.c8db.C8DB;
 //import com.c8db.http.HTTPEndPoint;
 //import com.c8db.http.HTTPMethod;
 //import com.c8db.http.HTTPRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import io.siddhi.core.SiddhiAppRuntime;
+import io.siddhi.core.SiddhiManager;
+import io.siddhi.core.query.output.callback.QueryCallback;
+import io.siddhi.core.util.persistence.InMemoryPersistenceStore;
+import io.siddhi.core.util.persistence.PersistenceStore;
+import io.siddhi.core.event.Event;
+import io.siddhi.extension.io.live.source.LiveSource;
+import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.security.auth.login.CredentialException;
 
-@Controller
+
+
+
+@RestController
 public class GreetingController {
     private final ExecutorService nonBlockingService = Executors.newCachedThreadPool();
+    private final ExecutorService nonBlockingService2 = Executors.newCachedThreadPool();
+    Boolean appCreated = false;
+    SiddhiManager siddhiManager;
+    SiddhiManager siddhiManager1;
+    String query;
+    String browserQuery;
+    String apiKey;
+    public GreetingController() {
+        PersistenceStore persistenceStore = new InMemoryPersistenceStore();
+        this.siddhiManager = new SiddhiManager();
+        this.siddhiManager.setPersistenceStore(persistenceStore);
+        this.siddhiManager.setExtension("live", LiveSource.class);
+        this.siddhiManager.setExtension("map-json", JsonSourceMapper.class);
 
-    @GetMapping("/sse")
+        this.siddhiManager1 = new SiddhiManager();
+        this.siddhiManager1.setPersistenceStore(persistenceStore);
+        this.siddhiManager1.setExtension("live", LiveSource.class);
+        this.siddhiManager1.setExtension("map-json", JsonSourceMapper.class);
+
+    }
+    @PostMapping("/publish")
     @CrossOrigin
-    public SseEmitter handleSse() throws CredentialException, IOException {
+    public Body publishQuery(@RequestBody Body query) {
+        this.query = query.getQuery();
+        this.apiKey = query.getApiKey();
+//        System.out.println("Data: "+query);
+        System.out.println("Query: "+ this.query);
+        System.out.println("API: "+ this.apiKey);
+        return query;
+    }
+
+    @PostMapping("/browserInfo")
+    @CrossOrigin
+    public Body publishBrowserInfo(@RequestBody Body query) {
+        this.browserQuery = query.getQuery();
+        this.apiKey = query.getApiKey();
+//        System.out.println("Data: "+query);
+        System.out.println("Query: "+ this.query);
+        System.out.println("API: "+ this.apiKey);
+        return query;
+    }
+
+    @PostMapping("/setQuery")
+    @CrossOrigin
+    public Body setQuery(@RequestBody Body query) {
+        this.browserQuery = query.getQuery();
+        this.apiKey = query.getApiKey();
+//        System.out.println("Data: "+query);
+        System.out.println("Query: "+ this.browserQuery);
+        System.out.println("API: "+ this.apiKey);
+        return query;
+    }
 
 
+    @GetMapping("/traffic")
+    @CrossOrigin
+    public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
 
-//        C8DB db = (new C8DB.Builder()).hostName("api-varden-4f0f3c4f.paas.macrometa.io").port(443).apiKey("madu140_gmail.com.AccessPortal.2PL8EeyIAMn2sx7YHKWMM58tmJLES4NyIWq6Cnsj0BTMjygJyF3b14zb2sidcauXccccb8").build();
-//        HTTPEndPoint endPoint = new HTTPEndPoint("/_fabric/_system/_api/collection/network_traffic/count");
-//        HTTPRequest request = (new HTTPRequest.Builder()).RequestType(HTTPMethod.GET).EndPoint(endPoint).build();
-//        db.execute(request);
-//
-//
-//        VPackSlice r = db.execute(request);
-//        System.out.println(r.toString());
+        BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
+//        System.out.println("Query: "+query);
 
-        SseEmitter emitter = new SseEmitter();
-        nonBlockingService.execute(() -> {
-//            for (int i = 0; i < 10; i++) {
-                try {
-//                    emitter.send("Add Data" + " - " + new Date());
-                    // we could send more events
-                    emitter.send(new Date());
-//                emitter.complete();
-                } catch (Exception ex) {
-                    emitter.completeWithError(ex);
+        Runnable siddhi = new Runnable() {
+            @Override
+            public void run() {
+                while (query == null){
+                    continue;
                 }
+                UUID appname = UUID.randomUUID();
+                String inStreamDefinition0 = "@App:name('"+appname.toString()+"')" +
+                        "@source(type='live',sql.query='"+query+"', " +
+                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                        "api.key = '"+apiKey+"', " +
+                        " @map(type='json', fail.on.missing.attribute='false') )" +
+                        "define stream inputStream (id String,key String,revision String,properties String);";
+//                System.out.println("SSS: "+inStreamDefinition0);
+                    String query0 = ("@sink(type = 'log')" +
+                            "define stream OutputStream (id String,key String,revision String,properties String);" +
+                            "@info(name = 'query0') "
+                            + "from inputStream "
+                            + "select * "
+                            + "insert into outputStream;"
+                    );
+                    SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
+                            .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+
+
+                    siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                        @Override
+                        public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+
+                            try {
+                                events.put(inEvents);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                        }
+                    });
+                    siddhiAppRuntime0.start();
+
+            }
+        };
+        SseEmitter emitter = new SseEmitter(-99l);
+        Runnable sse = new Runnable() {
+            @Override
+            public void run() {
+
+                nonBlockingService.execute(() -> {
+                    try {
+                        List<Object> list = new ArrayList<>(5);
+                        // we could send more events
+                        while(true) {
+                            Event[] edata = events.take();
+                            System.out.println(edata[0].getData()[3]);
+                            list.add(edata[0].getData()[3]);
+                            System.out.println("Length: "+list.size());
+                            if(list.size() == 5) {
+                                emitter.send(list);
+                                System.out.println("Sent!");
+//                                emitter.complete();
+                                list.clear();
+                            }
+                        }
+
+
+                    } catch (Exception ex) {
+                        emitter.completeWithError(ex);
+                    }
 //            }
-            emitter.complete();
-        });
+                });
+
+            }
+        };
+        Thread t = new Thread(siddhi);
+        Thread tb = new Thread(sse);
+        t.start();
+        tb.start();
+//        t.join();
+//        tb.join();
         return emitter;
+    }
+
+    @GetMapping("/browsers")
+    @CrossOrigin
+    public SseEmitter handleSse2() throws CredentialException, IOException, InterruptedException {
+
+        BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
+
+        Runnable siddhi = new Runnable() {
+            @Override
+            public void run() {
+                while (query == null){
+                    continue;
+                }
+                String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
+                        "@source(type='live',sql.query='"+browserQuery+"', " +
+                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                        "api.key = '"+apiKey+"', " +
+                        " @map(type='json', fail.on.missing.attribute='false') )" +
+                        "define stream inputStream (id String,key String,revision String,properties String);";
+//                System.out.println("SSS: "+inStreamDefinition0);
+                String query0 = ("@sink(type = 'log')" +
+                        "define stream OutputStream (id String,key String,revision String,properties String);" +
+                        "@info(name = 'query0') "
+                        + "from inputStream "
+                        + "select * "
+                        + "insert into outputStream;"
+                );
+                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager1
+                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+
+
+                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                    @Override
+                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+
+                        try {
+                            events.put(inEvents);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    }
+                });
+                siddhiAppRuntime0.start();
+
+            }
+        };
+        SseEmitter emitter = new SseEmitter();
+        Runnable sse = new Runnable() {
+            @Override
+            public void run() {
+
+                nonBlockingService.execute(() -> {
+                    try {
+                        List<Object> list = new ArrayList<>(5);
+                        // we could send more events
+                        while(events.isEmpty()) {
+                            Event[] edata = events.take();
+                            System.out.println(edata[0].getData()[3]);
+                            list.add(edata[0].getData()[3]);
+                            if(list.size() == 5) {
+                                emitter.send(list);
+                                list.clear();
+                            }
+                        }
+                    } catch (Exception ex) {
+                        emitter.completeWithError(ex);
+                    }
+                });
+
+            }
+        };
+        Thread t = new Thread(siddhi);
+        Thread tb = new Thread(sse);
+        t.start();
+        tb.start();
+        return emitter;
+    }
+
+    @GetMapping("/query")
+    @CrossOrigin
+    public SseEmitter dynamicQuery() throws CredentialException, IOException, InterruptedException {
+        BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
+
+        Runnable siddhi = new Runnable() {
+            @Override
+            public void run() {
+                while (browserQuery == null){
+                    continue;
+                }
+                String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
+                        "@source(type='live',sql.query='"+browserQuery+"', " +
+                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                        "api.key = '"+apiKey+"', " +
+                        " @map(type='json', fail.on.missing.attribute='false') )" +
+                        "define stream inputStream (id String,key String,revision String,properties String);";
+//                System.out.println("SSS: "+inStreamDefinition0);
+                String query0 = ("@sink(type = 'log')" +
+                        "define stream OutputStream (id String,key String,revision String,properties String);" +
+                        "@info(name = 'query0') "
+                        + "from inputStream "
+                        + "select * "
+                        + "insert into outputStream;"
+                );
+                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager1
+                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+
+
+                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                    @Override
+                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+
+                        try {
+                            events.put(inEvents);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    }
+                });
+                siddhiAppRuntime0.start();
+
+            }
+        };
+        SseEmitter emitter = new SseEmitter(-99l);
+        Runnable sse = new Runnable() {
+            @Override
+            public void run() {
+
+                nonBlockingService.execute(() -> {
+                    try {
+                        List<Object> list = new ArrayList<>(5);
+                        // we could send more events
+                        while(events.isEmpty()) {
+                            Event[] edata = events.take();
+                            System.out.println(edata[0].getData()[3]);
+                            list.add(edata[0].getData()[3]);
+                            if(list.size() == 5) {
+                                emitter.send(list);
+                                list.clear();
+                            }
+                        }
+                    } catch (Exception ex) {
+                        emitter.completeWithError(ex);
+                    }
+                });
+
+            }
+        };
+        Thread t = new Thread(siddhi);
+        Thread tb = new Thread(sse);
+        t.start();
+        tb.start();
+        return emitter;
+    }
+
+
+}
+
+class Body {
+    String query;
+    String apiKey;
+    public String getQuery() {
+        return query;
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
     }
 }
