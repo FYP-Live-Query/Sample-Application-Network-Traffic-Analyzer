@@ -113,7 +113,7 @@ public class GreetingController {
                                 System.runFinalization();
                                 Thread.sleep(1000);
                                 long after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                                long objectSize = (after - before)%10^6;
+                                long objectSize = (after - before)%10^6;//convert bytes to mb
                                 meterRegistry.summary("events.summary").record(objectSize);
                                 //show event_summary_count in grafana
                             } catch (InterruptedException e) {
