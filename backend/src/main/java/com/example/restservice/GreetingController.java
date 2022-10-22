@@ -2,37 +2,27 @@ package com.example.restservice;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 
-//import com.c8db.C8DB;
-//import com.c8db.http.HTTPEndPoint;
-//import com.c8db.http.HTTPMethod;
-//import com.c8db.http.HTTPRequest;
-import com.google.gson.Gson;
 import io.siddhi.core.SiddhiAppRuntime;
 import io.siddhi.core.SiddhiManager;
 import io.siddhi.core.query.output.callback.QueryCallback;
 import io.siddhi.core.util.persistence.InMemoryPersistenceStore;
 import io.siddhi.core.util.persistence.PersistenceStore;
 import io.siddhi.core.event.Event;
-import io.siddhi.core.util.EventPrinter;
 import io.siddhi.extension.io.live.source.LiveSource;
 import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-
 import javax.security.auth.login.CredentialException;
-
-
+import io.micrometer.core.instrument.MeterRegistry;
 
 
 @RestController
 public class GreetingController {
+
     private final ExecutorService nonBlockingService = Executors.newCachedThreadPool();
     private final ExecutorService nonBlockingService2 = Executors.newCachedThreadPool();
     Boolean appCreated = false;
@@ -41,7 +31,10 @@ public class GreetingController {
     String query;
     String browserQuery;
     String apiKey;
-    public GreetingController() {
+    private MeterRegistry meterRegistry;
+    public GreetingController(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+
         PersistenceStore persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
         this.siddhiManager.setPersistenceStore(persistenceStore);
@@ -111,7 +104,18 @@ public class GreetingController {
                         public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
                             try {
+                                System.gc();
+                                System.runFinalization();
+                                Thread.sleep(1000);
+                                long before = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                                 events.put(inEvents);
+                                System.gc();
+                                System.runFinalization();
+                                Thread.sleep(1000);
+                                long after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                                long objectSize = (after - before)%10^6;
+                                meterRegistry.summary("events.summary").record(objectSize);
+                                //show event_summary_count in grafana
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
