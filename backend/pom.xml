@@ -17,6 +17,7 @@
 		<java.version>1.8</java.version>
 	</properties>
 	<dependencies>
+		<!-- dependencies to get metrics -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -30,6 +31,7 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- /dependencies to get metrics -->
 		<dependency>
 			<groupId>io.siddhi.extension.io.live</groupId>
 			<artifactId>io.siddhi.extension.io.live</artifactId>
