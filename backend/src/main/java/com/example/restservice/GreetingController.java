@@ -32,6 +32,8 @@ public class GreetingController {
     String browserQuery;
     String apiKey;
     private MeterRegistry meterRegistry;
+    long[] before= {Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()};
+    long after;
     public GreetingController(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
 
@@ -71,6 +73,10 @@ public class GreetingController {
     @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
+//        System.gc();
+//        System.runFinalization();
+//        Thread.sleep(1000);
+        before = new long[]{Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()};
 
         BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
 //        System.out.println("Query: "+query);
@@ -104,18 +110,19 @@ public class GreetingController {
                         public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
                             try {
-                                System.gc();
-                                System.runFinalization();
-                                Thread.sleep(1000);
-                                long before = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                                 events.put(inEvents);
                                 System.gc();
                                 System.runFinalization();
                                 Thread.sleep(1000);
-                                long after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                                long objectSize = (after - before)%10^6;//convert bytes to mb
-                                meterRegistry.summary("events.summary").record(objectSize);
-                                //show event_summary_count in grafana
+                                after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                                double objectSize1 = (after - before[0])*0.000001;//convert bytes to mib
+                                System.out.println("before1:"+ before[0]);
+                                System.out.println("after1:"+after);
+//                                System.out.println("diff1:"+ob);
+//                                System.out.println("diff:"+objectSize);
+                                meterRegistry.summary("query1.memory").record(objectSize1);
+                                before[0] =after;
+                                //show event_summary_sum in grafana
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
@@ -164,90 +171,106 @@ public class GreetingController {
 
             }
         };
-        Thread t = new Thread(siddhi);
+        Thread t = new Thread(siddhi,"traffic");
         Thread tb = new Thread(sse);
         t.start();
         tb.start();
         return emitter;
     }
 
-    @GetMapping("/browsers")
-    @CrossOrigin
-    public SseEmitter handleSse2() throws CredentialException, IOException, InterruptedException {
+     @GetMapping("/browsers")
+     @CrossOrigin
+     public SseEmitter handleSse2() throws CredentialException, IOException, InterruptedException {
+         before = new long[]{Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()};
+//         System.gc();
+//         System.runFinalization();
+//         Thread.sleep(1000);
+//         final long[] before = {Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()};
+         BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
 
-        BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
-
-        Runnable siddhi = new Runnable() {
-            @Override
-            public void run() {
-                while (query == null){
-                    continue;
-                }
-                String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
-                        "@source(type='live',sql.query='"+browserQuery+"', " +
-                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
-                        "api.key = '"+apiKey+"', " +
-                        " @map(type='json', fail.on.missing.attribute='false') )" +
-                        "define stream inputStream (id String,key String,revision String,properties String);";
-//                System.out.println("SSS: "+inStreamDefinition0);
-                String query0 = ("@sink(type = 'log')" +
-                        "define stream OutputStream (id String,key String,revision String,properties String);" +
-                        "@info(name = 'query0') "
-                        + "from inputStream "
-                        + "select * "
-                        + "insert into outputStream;"
-                );
-                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager1
-                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+         Runnable siddhi = new Runnable() {
+             @Override
+             public void run() {
+                 while (query == null){
+                     continue;
+                 }
+                 String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
+                         "@source(type='live',sql.query='"+browserQuery+"', " +
+                         "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                         "api.key = '"+apiKey+"', " +
+                         " @map(type='json', fail.on.missing.attribute='false') )" +
+                         "define stream inputStream (id String,key String,revision String,properties String);";
+ //                System.out.println("SSS: "+inStreamDefinition0);
+                 String query1 = ("@sink(type = 'log')" +
+                         "define stream OutputStream (id String,key String,revision String,properties String);" +
+                         "@info(name = 'query1') "
+                         + "from inputStream "
+                         + "select * "
+                         + "insert into outputStream;"
+                 );
+                 SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager1
+                         .createSiddhiAppRuntime(inStreamDefinition0 + query1);
 
 
-                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
-                    @Override
-                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                 siddhiAppRuntime0.addCallback("query1", new QueryCallback() {
+                     @Override
+                     public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
-                        try {
-                            events.put(inEvents);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+                         try {
+                             events.put(inEvents);
+                             System.gc();
+                             System.runFinalization();
+                             Thread.sleep(1000);
+                             long after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                             double objectSize2 = (after - before[0])*0.000001;//convert bytes to mib
+                             System.out.println("before:"+ before[0]);
+                             System.out.println("after:"+after);
+//                                System.out.println("diff1:"+ob);
+//                                System.out.println("diff:"+objectSize);
+                             meterRegistry.summary("query2.memory").record(objectSize2);
+                             meterRegistry.summary("test.memory").record(objectSize2);
+                             before[0] =after;
+                         } catch (InterruptedException e) {
+                             throw new RuntimeException(e);
+                         }
 
-                    }
-                });
-                siddhiAppRuntime0.start();
+                     }
+                 });
+                 siddhiAppRuntime0.start();
 
-            }
-        };
-        SseEmitter emitter = new SseEmitter();
-        Runnable sse = new Runnable() {
-            @Override
-            public void run() {
+             }
+         };
+         SseEmitter emitter = new SseEmitter();
+         Runnable sse = new Runnable() {
+             @Override
+             public void run() {
 
-                nonBlockingService.execute(() -> {
-                    try {
-                        List<Object> list = new ArrayList<>(5);
-                        // we could send more events
-                        while(events.isEmpty()) {
-                            Event[] edata = events.take();
-                            System.out.println(edata[0].getData()[3]);
-                            list.add(edata[0].getData()[3]);
-                            if(list.size() == 5) {
-                                emitter.send(list);
-                                list.clear();
-                            }
-                        }
-                    } catch (Exception ex) {
-                        emitter.completeWithError(ex);
-                    }
-                });
+                 nonBlockingService.execute(() -> {
+                     try {
+                         List<Object> list = new ArrayList<>(5);
+                         // we could send more events
+                         while(events.isEmpty()) {
+                             Event[] edata = events.take();
+                             System.out.println(edata[0].getData()[3]);
+                             list.add(edata[0].getData()[3]);
+                             if(list.size() == 5) {
+                                 emitter.send(list);
+                                 list.clear();
+                             }
+                         }
+                     } catch (Exception ex) {
+                         emitter.completeWithError(ex);
+                     }
+                 });
 
-            }
-        };
-        Thread t = new Thread(siddhi);
-        Thread tb = new Thread(sse);
-        t.start();
-        tb.start();
-        return emitter;
-    }
+             }
+         };
+         Thread t = new Thread(siddhi,"browser");
+         Thread tb = new Thread(sse);
+         t.start();
+         tb.start();
+         return emitter;
+     }
 
 
 
