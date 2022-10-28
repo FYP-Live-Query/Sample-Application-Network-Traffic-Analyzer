@@ -228,7 +228,6 @@ public class GreetingController {
 //                                System.out.println("diff1:"+ob);
 //                                System.out.println("diff:"+objectSize);
                              meterRegistry.summary("query2.memory").record(objectSize2);
-                             meterRegistry.summary("test.memory").record(objectSize2);
                              before[0] =after;
                          } catch (InterruptedException e) {
                              throw new RuntimeException(e);
