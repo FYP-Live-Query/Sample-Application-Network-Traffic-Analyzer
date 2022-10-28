@@ -1,5 +1,5 @@
 import React from "react";
-import { Router, Route, Switch } from "react-router-dom";
+import { Router, Route, Switch, Redirect, BrowserRouter} from "react-router-dom";
 import { Button, Container } from "reactstrap";
 
 import Loading from "./components/Loading";
@@ -18,6 +18,9 @@ import TextField from '@mui/material/TextField';
 import Link from '@mui/material/Link';
 import { useState, useEffect } from "react";
 import Editor from "./views/Editor";
+import NetworkAnalyzer from "./networkAnalyzer";
+import Main from "./views/Main";
+
 // styles
 import "./App.css";
 
@@ -55,84 +58,14 @@ const App = () => {
     return <Loading />;
   }
 
-  function setApi() {
-    const updatedJSON = {
-      apiKey: ""
-    }
-    // fs.writeFile('./model/data.json', JSON.stringify(updatedJSON), (err) => {
-    //   if (err) console.log('Error writing file:', err);
-    // })
-    isApiKey = true;
-  }
-
-  const handleSubmit = (event) => {
-    // event.preventDefault()
-    console.log(event.target.apiKey.value)
-    localStorage.setItem('apiKey', event.target.apiKey.value);
-  }
   return (
+
     <Router history={history}>
-        <Box bgcolor={'#423F23'} color={'white'} w='100%' p={4} textAlign={"center"} fontFamily="Roboto" letterSpacing="30px" fontSize={42}>
-          NETWORK TRAFFIC ANALYZER
-        </Box>
-        <NavBar />
-
-
-        <Grid container spacing={2} backgroundColor='#595959' padding={5}>
-          <Grid item xs={10}>
-            <Box fontSize={20} color='white'>
-              <b> Website: </b> Securities and Exchange Commission
-            </Box>
-          </Grid>
-
-          <Grid item xs={2}>
-            <Box fontSize={20} color='white'>
-              <b> URL: </b> <Link href="https://www.sec.gov">https://www.sec.gov</Link>
-            </Box>
-          </Grid>
-        </Grid>
-
-        {isApiKey == false && isAuthenticated == true && (
-              <form onSubmit={handleSubmit}>
-                <TextField id="outlined-basic" name="apiKey" type="text" label="MACROMETA API KEY" variant="outlined" 
-                          sx={{
-                            '& > :not(style)': { m: 2, width: '201ch' },
-                }}/>
-                <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: { xs: 'column', md: 'row' },
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Button type="submit" style={{justifyContent: 'center'}}>Submit</Button>
-                </Box>
-                
-              </form>
-              
-        // <Box
-        //   component="form"
-        //   sx={{
-        //     '& > :not(style)': { m: 2, width: '201ch' },
-        //   }}
-        //   noValidate
-        //   autoComplete="off"
-        // >
-        //   <input id="outlined-basic" name="apiKey" label="MACROMETA API KEY" variant="outlined" />
-        //   <
-        // </Box>
-        )}
-
-        {isApiKey == true && (
-        <Switch>
-          <Route path="/" exact component={Home} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/external-api" component={ExternalApi} />
-          <Route path="/editor" component={Editor} />
-        </Switch>)
-        } 
-        
+      <Switch>
+        <Route path="/" exact component={Main} />
+        <Route path="/app" exact component={NetworkAnalyzer} />
+        <Route path="/editor" exact component={Editor} />
+      </Switch>
     </Router>
   );
 };

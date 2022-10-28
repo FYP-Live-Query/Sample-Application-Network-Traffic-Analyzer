@@ -1,6 +1,7 @@
 package com.example.restservice;
 
 import java.io.IOException;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,10 +18,11 @@ import io.siddhi.core.util.persistence.PersistenceStore;
 import io.siddhi.core.event.Event;
 import io.siddhi.extension.io.live.source.LiveSource;
 import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.GetMapping;
-
+import io.micrometer.core.instrument.MeterRegistry;
 import javax.security.auth.login.CredentialException;
 
 
@@ -30,20 +32,22 @@ import javax.security.auth.login.CredentialException;
 public class GreetingController {
     private final ExecutorService nonBlockingService = Executors.newCachedThreadPool();
     private final ExecutorService nonBlockingService2 = Executors.newCachedThreadPool();
+    private MeterRegistry meterRegistry;
     Boolean appCreated = false;
     SiddhiManager siddhiManager;
     SiddhiManager siddhiManager1;
     String query;
     String browserQuery;
+    String dynamicQuery;
     String apiKey;
-    public GreetingController() {
+    public GreetingController(MeterRegistry meterRegistry) {
         PersistenceStore persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
         this.siddhiManager.setPersistenceStore(persistenceStore);
         this.siddhiManager.setExtension("live", LiveSource.class);
         this.siddhiManager.setExtension("map-json", JsonSourceMapper.class);
-
         this.siddhiManager1 = new SiddhiManager();
+        this.meterRegistry = meterRegistry;
         this.siddhiManager1.setPersistenceStore(persistenceStore);
         this.siddhiManager1.setExtension("live", LiveSource.class);
         this.siddhiManager1.setExtension("map-json", JsonSourceMapper.class);
@@ -74,10 +78,10 @@ public class GreetingController {
     @PostMapping("/setQuery")
     @CrossOrigin
     public Body setQuery(@RequestBody Body query) {
-        this.browserQuery = query.getQuery();
+        this.dynamicQuery = query.getQuery();
         this.apiKey = query.getApiKey();
 //        System.out.println("Data: "+query);
-        System.out.println("Query: "+ this.browserQuery);
+        System.out.println("Query: "+ this.dynamicQuery);
         System.out.println("API: "+ this.apiKey);
         return query;
     }
@@ -252,16 +256,21 @@ public class GreetingController {
     @GetMapping("/query")
     @CrossOrigin
     public SseEmitter dynamicQuery() throws CredentialException, IOException, InterruptedException {
-        BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
 
+        BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
+        SiddhiManager siddhiManager2 = new SiddhiManager();
+        PersistenceStore persistenceStore = new InMemoryPersistenceStore();
+        siddhiManager2.setPersistenceStore(persistenceStore);
+        siddhiManager2.setExtension("live", LiveSource.class);
+        siddhiManager2.setExtension("map-json", JsonSourceMapper.class);
         Runnable siddhi = new Runnable() {
             @Override
             public void run() {
-                while (browserQuery == null){
+                while (dynamicQuery == null){
                     continue;
                 }
                 String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
-                        "@source(type='live',sql.query='"+browserQuery+"', " +
+                        "@source(type='live',sql.query='"+dynamicQuery+"', " +
                         "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
                         "api.key = '"+apiKey+"', " +
                         " @map(type='json', fail.on.missing.attribute='false') )" +
@@ -274,7 +283,7 @@ public class GreetingController {
                         + "select * "
                         + "insert into outputStream;"
                 );
-                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager1
+                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager2
                         .createSiddhiAppRuntime(inStreamDefinition0 + query0);
 
 
@@ -283,7 +292,20 @@ public class GreetingController {
                     public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
                         try {
+                            System.gc();
+                            System.runFinalization();
+                            Thread.sleep(1000);
+                            long before = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                            System.out.println("Memory Usage - Start: " + before);
+
                             events.put(inEvents);
+                            System.gc();
+                            System.runFinalization();
+                            Thread.sleep(1000);
+                            long after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                            long objectSize = (after - before)%10^6;
+                            meterRegistry.summary("events.summary").record(objectSize);
+                            System.out.println("Memory Usage - Difference:" + objectSize);
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -305,9 +327,12 @@ public class GreetingController {
                         // we could send more events
                         while(events.isEmpty()) {
                             Event[] edata = events.take();
+                            LocalTime currentTime = java.time.LocalTime.now();
+                            System.out.println("Timestamp: "+currentTime);
                             System.out.println(edata[0].getData()[3]);
                             list.add(edata[0].getData()[3]);
                             if(list.size() == 5) {
+                                list.add(currentTime);
                                 emitter.send(list);
                                 list.clear();
                             }
