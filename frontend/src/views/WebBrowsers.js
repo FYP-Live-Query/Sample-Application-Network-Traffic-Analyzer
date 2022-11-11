@@ -95,7 +95,7 @@ function WebBrowsers() {
   return (
     <React.Fragment>
         <Box paddingTop={8}>
-            <h1>TOP 5 WEB BROWSERS</h1>
+            <h1>TOP 05 WEB BROWSERS</h1>
         </Box>
         <Box paddingTop={2}>
             {browserData}

@@ -120,7 +120,7 @@ function DataTable() {
         </TableHead>
 
         <TableBody>
-          {rows.map((row, i) => (
+          {rows.slice(0).reverse().map((row, i) => (
             <TableRow
               key={i}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}

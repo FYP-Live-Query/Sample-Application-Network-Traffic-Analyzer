@@ -44,7 +44,7 @@ function Home() {
   return (
     <div>
       <Box paddingTop={8}>
-        <h1 color={"white"} paddingbottom={'10'} paddingleft={'1'}>TOP 5 NETWORK TRAFFIC</h1>
+        <h1 color={"white"} paddingbottom={'10'} paddingleft={'1'}>TOP 05 NETWORK TRAFFIC</h1>
       </Box>
       
       <DataTable />
