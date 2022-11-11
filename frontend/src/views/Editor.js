@@ -3,28 +3,17 @@ import { Box } from '@mui/system';
 import React, { useEffect, useState } from "react";
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import { styled } from '@mui/material/styles';
-import MuiGrid from '@mui/material/Grid';
-import Divider from '@mui/material/Divider';
-import DataTable from './DataTable';
-import WebBrowsers from './WebBrowsers';
-import Loading from "../components/Loading";
-import { useAuth0, withAuthenticationRequired } from "@auth0/auth0-react";
+
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import DataService from '../service/DataService';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import SimpleUserTable from './SimpleUserTable';
+
+
 
 const serverBaseURL = "http://localhost:8081";
 
 function QueryEditor() {
   const [data, setData] = useState([]);
-
+  let prevData = {ip: '', date: '', browser: '', traffic: 0};
 
       // const [data, setData] = useState([]);
   const fetchData = async (query) => {
@@ -49,11 +38,52 @@ function QueryEditor() {
         
         const parsedData = JSON.parse(event.data);
         // console.log(parsedData);
-        data.push(parsedData)
+        // data.push(parsedData)
         // arr.push(parsedData);
-        setData(data);
-        console.log(data);
-        // const div = document.getElementById('paragraph');
+        setData(parsedData);
+        // console.log(parsedData);
+
+        // const time = document.getElementById('time');
+        // time.innerHTML = "Time: " + "<br>" + parsedData[1];
+
+        // const results = document.getElementById('results');
+        // results.innerHTML = "Data: " + "<br>" + parsedData[0];
+
+        const divElement = document.getElementById('paragraph');
+        
+        const newData = JSON.parse(parsedData[0]);
+        // console.log("New: ", newData.time);
+        prevData = JSON.stringify(prevData) === JSON.stringify({ip: '', date: '', browser: '', traffic: 0}) ? newData : prevData;
+        prevData = JSON.stringify(newData) === JSON.stringify(prevData) ? newData : prevData;
+
+
+
+        divElement.innerHTML += `<div id="whole" style="display: flex">` +
+        `<div id="time" style="flex: 1; margin-left: 52px; color: ${newData == prevData ? 'tomato' : 'blue'};"> Time: <br> ${parsedData[1].substring(0,8)} </div><br><br>` +
+        `<div id="ip" style="flex: 2; color: ${newData.ip == prevData.ip ? 'tomato' : 'blue'};">` + "IP Address: " + "<br>" + newData.ip + `</div>` +
+        `<div id="results" style="flex: 2; color: ${newData.date == prevData.date ? 'tomato' : 'blue'};">` + "Date: " + "<br>" + newData.date + '</div>' +
+        `<div id="browser" style="flex: 2; color: ${newData.browser == prevData.browser ? 'tomato' : 'blue'};">` + "Browsers: " + "<br>" + newData.browser + `</div>` +
+        `<div id="traffic" style="flex: 2; color: ${newData.traffic == prevData.traffic ? 'tomato' : 'blue'};"> Traffic: <br> ${newData.traffic} </div>` +
+        `</div>`;
+
+        divElement.innerHTML += "<hr><br><br>" ;
+        
+        prevData = newData;
+        // let traffic = document.getElementById('traffic');
+        // if (newData.traffic == prevData.traffic) {          
+        //   traffic.style.color = 'blue';
+        // } 
+
+        // const time = document.getElementById('time');
+
+        // time.style.flex = '1';
+
+        // const results = document.getElementById('results');
+        // results.style.flex = '2';
+
+
+        // const info = document.getElementById('data');
+        // info.innerHTML += parsedData.slice(0,5) + "<br>";        
         // div.textContent = event.data;
         // const parsedData = JSON.parse(event.data);
         // const finalData = getRealtimeData(parsedData);
@@ -100,13 +130,17 @@ function QueryEditor() {
             <Button type="submit" style={{justifyContent: 'center'}}>Submit</Button>
         </Box>
       </form>
+    
       <div id='paragraph'>
+            {/* <div id="time"></div>
+            <div id="results"></div> */}
           {/* {data.forEach((el)=>{
               <div>el</div>
           })} */}
           {/* Timestamp: {data[5]}
           Data: {data.slice(0,5)} */}
-          <TableContainer sx={{ color: '#595959' }}  backgroundcolor='#595959' padding={'10'} >
+          
+          {/* <TableContainer sx={{ color: '#595959' }}  backgroundcolor='#595959' padding={'10'} >
             <Table sx={{ minWidth: 650 }} aria-label="simple table" variant='simple' >
               <TableHead> 
                 <TableRow>
@@ -116,19 +150,18 @@ function QueryEditor() {
               </TableHead>
 
               <TableBody>
-
-
-                  
                   <TableRow
                     key={data[5]}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    id = "row"
                   >
                   {data.map((object, i) => 
-                    
                     <div>
+                      <TableCell id="time" component="th" scope="row">object[5]</TableCell> 
+                      <TableCell id="data" align="right" >object.slice(0, 5)</TableCell>
 
-                      <TableCell component="th" scope="row">{object[5]} </TableCell> 
-                      <TableCell align="right" >{object.slice(0,5)}</TableCell>
+                      <TableCell id="time" component="th" scope="row">object[5]</TableCell> 
+                      <TableCell id="data" align="right" >object.slice(0, 5)</TableCell>
                     </div>
                   )}
                   </TableRow>
@@ -136,7 +169,8 @@ function QueryEditor() {
               </TableBody>
 
             </Table>
-          </TableContainer>
+          </TableContainer> */}
+
           {/* <SimpleUserTable data={data.users} isFetching={data.isFetching} /> */}
       </div>
       </div>
