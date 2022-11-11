@@ -26,8 +26,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import javax.security.auth.login.CredentialException;
 
 
-
-
 @RestController
 public class GreetingController {
     private final ExecutorService nonBlockingService = Executors.newCachedThreadPool();
@@ -166,7 +164,7 @@ public class GreetingController {
 
             }
         };
-        Thread t = new Thread(siddhi);
+        Thread t = new Thread(siddhi,"traffic");
         Thread tb = new Thread(sse);
         t.start();
         tb.start();
@@ -246,7 +244,7 @@ public class GreetingController {
 
             }
         };
-        Thread t = new Thread(siddhi);
+        Thread t = new Thread(siddhi,"browser");
         Thread tb = new Thread(sse);
         t.start();
         tb.start();
@@ -323,19 +321,20 @@ public class GreetingController {
 
                 nonBlockingService.execute(() -> {
                     try {
-                        List<Object> list = new ArrayList<>(5);
+
                         // we could send more events
                         while(events.isEmpty()) {
+                            List<Object> list = new ArrayList<>(5);
                             Event[] edata = events.take();
                             LocalTime currentTime = java.time.LocalTime.now();
                             System.out.println("Timestamp: "+currentTime);
                             System.out.println(edata[0].getData()[3]);
                             list.add(edata[0].getData()[3]);
-                            if(list.size() == 5) {
+//                            if(list.size() == 5) {
                                 list.add(currentTime);
                                 emitter.send(list);
                                 list.clear();
-                            }
+//                            }
                         }
                     } catch (Exception ex) {
                         emitter.completeWithError(ex);
