@@ -13,11 +13,13 @@ import io.siddhi.core.util.persistence.PersistenceStore;
 import io.siddhi.core.event.Event;
 import io.siddhi.extension.io.live.source.LiveSource;
 import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
+import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.GetMapping;
 import javax.security.auth.login.CredentialException;
 import io.micrometer.core.instrument.MeterRegistry;
+import com.yourkit.api.controller.Controller;
 
 
 @RestController
@@ -73,6 +75,7 @@ public class GreetingController {
     @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
+//        System.out.println("Current Thread Group - " + Thread.currentThread().getStackTrace());
 //        System.gc();
 //        System.runFinalization();
 //        Thread.sleep(1000);
@@ -175,12 +178,17 @@ public class GreetingController {
         Thread tb = new Thread(sse);
         t.start();
         tb.start();
+        final Controller controller = Controller.newBuilder().self().build();
+        controller.startStackTelemetry();
+        final String snapshotFilePath = controller.captureMemorySnapshot();
+        System.out.println("Own memory snapshot captured1: " + snapshotFilePath);
         return emitter;
     }
 
      @GetMapping("/browsers")
      @CrossOrigin
      public SseEmitter handleSse2() throws CredentialException, IOException, InterruptedException {
+//         System.out.println("Current Thread Group - " + Thread.currentThread().getStackTrace());
          before = new long[]{Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()};
 //         System.gc();
 //         System.runFinalization();
@@ -268,11 +276,18 @@ public class GreetingController {
          Thread tb = new Thread(sse);
          t.start();
          tb.start();
+         final Controller controller = Controller.newBuilder().self().build();
+         controller.startStackTelemetry();
+         final String snapshotFilePath = controller.captureMemorySnapshot();
+         System.out.println("Own memory snapshot captured: " + snapshotFilePath);
          return emitter;
      }
-
-
-
+//    public static void main(final String[] args) throws Exception {
+//        final Controller controller = Controller.newBuilder().self().build();
+//        controller.startStackTelemetry();
+//        final String snapshotFilePath = controller.captureMemorySnapshot();
+//        System.out.println("Own memory snapshot captured: " + snapshotFilePath);
+//    }
 }
 
 class Body {
