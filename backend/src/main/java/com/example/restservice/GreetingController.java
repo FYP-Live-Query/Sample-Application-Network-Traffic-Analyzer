@@ -1,6 +1,7 @@
 package com.example.restservice;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -10,6 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 //import com.c8db.http.HTTPEndPoint;
 //import com.c8db.http.HTTPMethod;
 //import com.c8db.http.HTTPRequest;
+import com.google.gson.Gson;
+import org.json.*;
 import io.siddhi.core.SiddhiAppRuntime;
 import io.siddhi.core.SiddhiManager;
 import io.siddhi.core.query.output.callback.QueryCallback;
@@ -103,7 +106,7 @@ public class GreetingController {
                 UUID appname = UUID.randomUUID();
                 String inStreamDefinition0 = "@App:name('"+appname.toString()+"')" +
                         "@source(type='live',sql.query='"+query+"', " +
-                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
                         "api.key = '"+apiKey+"', " +
                         " @map(type='json', fail.on.missing.attribute='false') )" +
                         "define stream inputStream (id String,key String,revision String,properties String);";
@@ -146,9 +149,14 @@ public class GreetingController {
                         // we could send more events
                         while(true) {
                             Event[] edata = events.take();
-                            System.out.println(edata[0].getData()[3]);
                             list.add(edata[0].getData()[3]);
-                            System.out.println("Length: "+list.size());
+                            String json3 = edata[0].getData()[3].toString();
+                            JSONObject json1=new JSONObject(json3);
+                            long updatedTime=json1.getLong("eventTimestamp");
+                            long traffic_latency = System.currentTimeMillis() - updatedTime;
+                            System.out.println("current: "+System.currentTimeMillis()+"time: "+updatedTime+"traffic_latency: "+traffic_latency);
+//                            meterRegistry.summary("query1.latency").record(traffic_latency);'
+                            meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
                             if(list.size() == 5) {
                                 emitter.send(list);
                                 System.out.println("Sent!");
@@ -189,7 +197,7 @@ public class GreetingController {
                 }
                 String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
                         "@source(type='live',sql.query='"+browserQuery+"', " +
-                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
                         "api.key = '"+apiKey+"', " +
                         " @map(type='json', fail.on.missing.attribute='false') )" +
                         "define stream inputStream (id String,key String,revision String,properties String);";
@@ -234,6 +242,11 @@ public class GreetingController {
                             Event[] edata = events.take();
                             System.out.println(edata[0].getData()[3]);
                             list.add(edata[0].getData()[3]);
+//                            String json_browser = edata[0].getData()[3].toString();
+//                            JSONObject json2=new JSONObject(json_browser);
+//                            Long updatedTime2=json2.getLong("eventTimeStamp");
+//                            Long browser_latency = System.currentTimeMillis() - updatedTime2;
+//                            System.out.println("browser_latency:"+browser_latency);
                             if(list.size() == 5) {
                                 emitter.send(list);
                                 list.clear();
@@ -271,7 +284,7 @@ public class GreetingController {
                 }
                 String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
                         "@source(type='live',sql.query='"+dynamicQuery+"', " +
-                        "host.name='api-varden-4f0f3c4f.paas.macrometa.io'," +
+                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
                         "api.key = '"+apiKey+"', " +
                         " @map(type='json', fail.on.missing.attribute='false') )" +
                         "define stream inputStream (id String,key String,revision String,properties String);";

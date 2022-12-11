@@ -5,7 +5,7 @@ class DataService{
 
     postData(){
       return axios.post('http://localhost:8081/publish', { 
-        query: 'FOR t IN network_traffic SORT t.traffic DESC LIMIT 5 RETURN t',
+        query: 'FOR t IN NetworkTrafficTable SORT t.traffic DESC LIMIT 5 RETURN t',
         apiKey: localStorage.getItem('apiKey')
       });
 
