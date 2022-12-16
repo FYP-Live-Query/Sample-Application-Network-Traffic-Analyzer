@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 //import com.c8db.http.HTTPEndPoint;
 //import com.c8db.http.HTTPMethod;
 //import com.c8db.http.HTTPRequest;
-import com.google.gson.Gson;
 import io.siddhi.core.SiddhiAppRuntime;
 import io.siddhi.core.SiddhiManager;
 import io.siddhi.core.query.output.callback.QueryCallback;
@@ -26,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.GetMapping;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.tapestry5.json.JSONObject;
 import javax.security.auth.login.CredentialException;
 
 
@@ -151,12 +151,18 @@ public class GreetingController {
                             Event[] edata = events.take();
                             list.add(edata[0].getData()[3]);
                             String json3 = edata[0].getData()[3].toString();
+                            System.out.println("new!"+json3);
                             JSONObject json1=new JSONObject(json3);
-                            long updatedTime=json1.getLong("eventTimestamp");
-                            long traffic_latency = System.currentTimeMillis() - updatedTime;
-                            System.out.println("current: "+System.currentTimeMillis()+"time: "+updatedTime+"traffic_latency: "+traffic_latency);
+                            String initial=json1.getString("initial_data");
+                            System.out.println("initial"+initial);
+                            if(Objects.equals(initial, "false")){
+                                System.out.println("initial_false");
+                                long updatedTime=json1.getLong("eventTimestamp");
+                                long traffic_latency = System.currentTimeMillis() - updatedTime;
+                                System.out.println("current: "+System.currentTimeMillis()+"time: "+updatedTime+" traffic_latency: "+traffic_latency);
 //                            meterRegistry.summary("query1.latency").record(traffic_latency);'
-                            meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                            }
                             if(list.size() == 5) {
                                 emitter.send(list);
                                 System.out.println("Sent!");
@@ -298,7 +304,6 @@ public class GreetingController {
                 );
                 SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager2
                         .createSiddhiAppRuntime(inStreamDefinition0 + query0);
-
 
                 siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
                     @Override
