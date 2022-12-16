@@ -33,9 +33,9 @@
 		<dependency>
 			<groupId>io.siddhi.extension.io.live</groupId>
 			<artifactId>io.siddhi.extension.io.live</artifactId>
-			<version>1.0.3</version>
+			<version>1.0.4</version>
 			<scope>system</scope>
-			<systemPath>/home/vinoja/Downloads/siddhi-io-live-1.0.0-SNAPSHOT.jar</systemPath>
+			<systemPath>/home/vinoja/Downloads/siddhi-io-live-1.0.4-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.c8db</groupId>

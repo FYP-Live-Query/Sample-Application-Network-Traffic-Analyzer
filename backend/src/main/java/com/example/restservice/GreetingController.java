@@ -23,7 +23,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.GetMapping;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.tapestry5.json.JSONObject;
 import javax.security.auth.login.CredentialException;
 
