@@ -157,13 +157,6 @@ public class GreetingController {
                             System.out.println("current: "+System.currentTimeMillis()+"time: "+updatedTime+"traffic_latency: "+traffic_latency);
 //                            meterRegistry.summary("query1.latency").record(traffic_latency);'
                             meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
-                            String json3 = edata[0].getData()[3].toString();
-                            JSONObject json1=new JSONObject(json3);
-                            long updatedTime=json1.getLong("eventTimestamp");
-                            long traffic_latency = System.currentTimeMillis() - updatedTime;
-                            System.out.println("current: "+System.currentTimeMillis()+"time: "+updatedTime+"traffic_latency: "+traffic_latency);
-//                            meterRegistry.summary("query1.latency").record(traffic_latency);'
-                            meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
                             if(list.size() == 5) {
                                 emitter.send(list);
                                 System.out.println("Sent!");
@@ -199,7 +192,7 @@ public class GreetingController {
         Runnable siddhi = new Runnable() {
             @Override
             public void run() {
-                while (query == null){
+                while (query == null) {
                     continue;
                 }
                 String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
