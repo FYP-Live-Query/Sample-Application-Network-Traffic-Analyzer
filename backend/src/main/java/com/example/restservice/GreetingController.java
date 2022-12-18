@@ -1,6 +1,7 @@
 package com.example.restservice;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.util.*;
@@ -25,7 +26,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.apache.tapestry5.json.JSONObject;
 import javax.security.auth.login.CredentialException;
-
+import java.net.InetAddress;
+import java.util.Date;
+import org.apache.commons.net.ntp.NTPUDPClient;
+import org.apache.commons.net.ntp.TimeInfo;
 
 
 
@@ -41,7 +45,10 @@ public class GreetingController {
     String browserQuery;
     String dynamicQuery;
     String apiKey;
-    public GreetingController(MeterRegistry meterRegistry) {
+    String TIME_SERVER = "time-a.nist.gov";
+    NTPUDPClient timeClient = new NTPUDPClient();
+    InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
+    public GreetingController(MeterRegistry meterRegistry) throws UnknownHostException {
         PersistenceStore persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
         this.siddhiManager.setPersistenceStore(persistenceStore);
@@ -149,17 +156,19 @@ public class GreetingController {
                             Event[] edata = events.take();
                             list.add(edata[0].getData()[3]);
                             String json3 = edata[0].getData()[3].toString();
-                            System.out.println("new!"+json3);
                             JSONObject json1=new JSONObject(json3);
                             String initial=json1.getString("initial_data");
                             System.out.println("initial"+initial);
                             if(Objects.equals(initial, "false")){
-                                System.out.println("initial_false");
+                                TimeInfo timeInfo = timeClient.getTime(inetAddress);
+                                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
                                 long updatedTime=json1.getLong("eventTimestamp");
-                                long traffic_latency = System.currentTimeMillis() - updatedTime;
-                                System.out.println("current: "+System.currentTimeMillis()+"time: "+updatedTime+" traffic_latency: "+traffic_latency);
-//                            meterRegistry.summary("query1.latency").record(traffic_latency);'
+//                                long traffic_latency = System.currentTimeMillis() - updatedTime;
+                                long traffic_latency = returnTime - updatedTime;
+                                System.out.println("current: "+System.currentTimeMillis()+" sync: "+returnTime+" updated_time: "+updatedTime+" traffic_latency: "+traffic_latency);
+//                            meterRegistry.summary("query1.latency1").record(traffic_latency);
                                 meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+//                                meterRegistry.gauge("query1.latency1", traffic_latency);
                             }
                             if(list.size() == 5) {
                                 emitter.send(list);
@@ -245,7 +254,9 @@ public class GreetingController {
                         while(events.isEmpty()) {
                             Event[] edata = events.take();
                             System.out.println(edata[0].getData()[3]);
+                            String json7 = edata[0].getData()[3].toString();
                             list.add(edata[0].getData()[3]);
+                            System.out.println("new!!!!"+json7);
 //                            String json_browser = edata[0].getData()[3].toString();
 //                            JSONObject json2=new JSONObject(json_browser);
 //                            Long updatedTime2=json2.getLong("eventTimeStamp");
