@@ -21,6 +21,7 @@ import io.siddhi.core.event.Event;
 import io.siddhi.extension.io.live.source.LiveSource;
 import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.tapestry5.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,7 +66,7 @@ public class GreetingController {
     @CrossOrigin
     public Body publishQuery(@RequestBody Body query) {
         this.query = query.getQuery();
-        this.apiKey = query.getApiKey();
+        this.apiKey = "Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385";
 //        System.out.println("Data: "+query);
         System.out.println("Query: "+ this.query);
         System.out.println("API: "+ this.apiKey);
@@ -76,7 +77,7 @@ public class GreetingController {
     @CrossOrigin
     public Body publishBrowserInfo(@RequestBody Body query) {
         this.browserQuery = query.getQuery();
-        this.apiKey = query.getApiKey();
+        this.apiKey = "Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385";
 //        System.out.println("Data: "+query);
         System.out.println("Query: "+ this.query);
         System.out.println("API: "+ this.apiKey);
@@ -87,7 +88,7 @@ public class GreetingController {
     @CrossOrigin
     public Body setQuery(@RequestBody Body query) {
         this.dynamicQuery = query.getQuery();
-        this.apiKey = query.getApiKey();
+        this.apiKey = "Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385";
 //        System.out.println("Data: "+query);
         System.out.println("Query: "+ this.dynamicQuery);
         System.out.println("API: "+ this.apiKey);
@@ -112,34 +113,34 @@ public class GreetingController {
                 String inStreamDefinition0 = "@App:name('"+appname.toString()+"')" +
                         "@source(type='live',sql.query='"+query+"', " +
                         "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
-                        "api.key = '"+apiKey+"', " +
+                        "api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385', " +
                         " @map(type='json', fail.on.missing.attribute='false') )" +
                         "define stream inputStream (id String,key String,revision String,properties String);";
 //                System.out.println("SSS: "+inStreamDefinition0);
-                    String query0 = ("@sink(type = 'log')" +
-                            "define stream OutputStream (id String,key String,revision String,properties String);" +
-                            "@info(name = 'query0') "
-                            + "from inputStream "
-                            + "select * "
-                            + "insert into outputStream;"
-                    );
-                    SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
-                            .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+                String query0 = ("@sink(type = 'log')" +
+                        "define stream OutputStream (id String,key String,revision String,properties String);" +
+                        "@info(name = 'query0') "
+                        + "from inputStream "
+                        + "select * "
+                        + "insert into outputStream;"
+                );
+                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
+                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
 
 
-                    siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
-                        @Override
-                        public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                    @Override
+                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
-                            try {
-                                events.put(inEvents);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-
+                        try {
+                            events.put(inEvents);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
                         }
-                    });
-                    siddhiAppRuntime0.start();
+
+                    }
+                });
+                siddhiAppRuntime0.start();
 
             }
         };
@@ -205,7 +206,7 @@ public class GreetingController {
         Runnable siddhi = new Runnable() {
             @Override
             public void run() {
-                while (query == null){
+                while (query == null) {
                     continue;
                 }
                 String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
