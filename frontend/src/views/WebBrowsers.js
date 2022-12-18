@@ -58,12 +58,12 @@ function WebBrowsers() {
             // console.log(event.data);
             const parsedData = JSON.parse(event.data);
             const finalData = getRealtimeData(parsedData);
-            setData(finalData)
+            // setData(finalData)
             // console.log("Browser Data: ", finalData);
   
-            // if (isMounted) {
-            //   setData(finalData);
-            // }
+            if (isMounted) {
+              setData(finalData);
+            }
           },
           onclose() {
             console.log("Connection closed by the server");
