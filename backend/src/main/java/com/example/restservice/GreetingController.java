@@ -18,7 +18,6 @@ import io.siddhi.core.query.output.callback.QueryCallback;
 import io.siddhi.core.util.persistence.InMemoryPersistenceStore;
 import io.siddhi.core.util.persistence.PersistenceStore;
 import io.siddhi.core.event.Event;
-import io.siddhi.extension.io.live.source.LiveSource;
 import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.tapestry5.json.JSONObject;
@@ -32,7 +31,14 @@ import java.util.Date;
 import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
 
-
+import SiddhiApp.Annotation.Attributes.JsonMapAttributes;
+import SiddhiApp.Annotation.Common.KeyValue;
+import SiddhiApp.Annotation.Info.QueryInfo;
+import SiddhiApp.Annotation.Map.JsonMap;
+import SiddhiApp.Annotation.Sink.LogSink;
+import SiddhiApp.Annotation.Source.LiveSource;
+import SiddhiApp.SiddhiApp;
+import Compiler.SiddhiAppGenerator;
 
 @RestController
 public class GreetingController {
@@ -109,14 +115,21 @@ public class GreetingController {
                 while (query == null){
                     continue;
                 }
-                UUID appname = UUID.randomUUID();
-                String inStreamDefinition0 = "@App:name('"+appname.toString()+"')" +
-                        "@source(type='live',sql.query='"+query+"', " +
-                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
-                        "api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385', " +
-                        " @map(type='json', fail.on.missing.attribute='false') )" +
-                        "define stream inputStream (id String,key String,revision String,properties String);";
+//                UUID appname = UUID.randomUUID();
+//                String inStreamDefinition0 = "@App:name('"+appname.toString()+"')" +
+//                        "@source(type='live',sql.query='"+query+"', " +
+//                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
+//                        "api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385', " +
+//                        " @map(type='json', fail.on.missing.attribute='false') )" +
+//                        "define stream inputStream (id String,key String,revision String,properties String);";
 //                System.out.println("SSS: "+inStreamDefinition0);
+//                String query0 = ("@sink(type = 'log')" +
+//                        "define stream OutputStream (id String,key String,revision String,properties String);" +
+//                        "@info(name = 'query0') "
+//                        + "from inputStream "
+//                        + "select * "
+//                        + "insert into outputStream;"
+//                );
                 SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
                         "SiddhiApp-dev-test",
                         query,
@@ -146,7 +159,7 @@ public class GreetingController {
                         .createSiddhiAppRuntime(siddhiAppString);
 
 
-                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                siddhiAppRuntime0.addCallback("SQL-SiddhiQL-dev-test", new QueryCallback() {
                     @Override
                     public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
@@ -173,28 +186,36 @@ public class GreetingController {
                         // we could send more events
                         while(true) {
                             Event[] edata = events.take();
-                            list.add(edata[0].getData()[3]);
-                            String json3 = edata[0].getData()[3].toString();
-                            JSONObject json1=new JSONObject(json3);
-                            String initial=json1.getString("initial_data");
-                            System.out.println("initial"+initial);
-                            if(Objects.equals(initial, "false")){
-                                TimeInfo timeInfo = timeClient.getTime(inetAddress);
-                                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
-                                long updatedTime=json1.getLong("eventTimestamp");
-//                                long traffic_latency = System.currentTimeMillis() - updatedTime;
-                                long traffic_latency = returnTime - updatedTime;
-                                System.out.println("current: "+System.currentTimeMillis()+" sync: "+returnTime+" updated_time: "+updatedTime+" traffic_latency: "+traffic_latency);
-//                            meterRegistry.summary("query1.latency1").record(traffic_latency);
-                                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
-//                                meterRegistry.gauge("query1.latency1", traffic_latency);
-                            }
-                            if(list.size() == 5) {
+                            System.out.println("Edata: " + edata[0].getData());
+                            list.add(edata[0].getData());
+                            if (list.size() == 5) {
                                 emitter.send(list);
-                                System.out.println("Sent!");
-//                                emitter.complete();
                                 list.clear();
+//                                emitter.complete();
                             }
+
+//                            list.add(edata[0].getData()[3]);
+//                            String json3 = edata[0].getData()[3].toString();
+//                            JSONObject json1=new JSONObject(json3);
+//                            String initial=json1.getString("initial_data");
+//                            System.out.println("initial"+initial);
+//                            if(Objects.equals(initial, "false")){
+//                                TimeInfo timeInfo = timeClient.getTime(inetAddress);
+//                                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
+//                                long updatedTime=json1.getLong("eventTimestamp");
+////                                long traffic_latency = System.currentTimeMillis() - updatedTime;
+//                                long traffic_latency = returnTime - updatedTime;
+//                                System.out.println("current: "+System.currentTimeMillis()+" sync: "+returnTime+" updated_time: "+updatedTime+" traffic_latency: "+traffic_latency);
+////                            meterRegistry.summary("query1.latency1").record(traffic_latency);
+//                                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+////                                meterRegistry.gauge("query1.latency1", traffic_latency);
+//                            }
+//                            if(list.size() == 5) {
+//                                emitter.send(list);
+//                                System.out.println("Sent!");
+////                                emitter.complete();
+//                                list.clear();
+//                            }
                         }
 
 
@@ -261,7 +282,7 @@ public class GreetingController {
 
             }
         };
-        SseEmitter emitter = new SseEmitter();
+        SseEmitter emitter = new SseEmitter(-99l);
         Runnable sse = new Runnable() {
             @Override
             public void run() {
