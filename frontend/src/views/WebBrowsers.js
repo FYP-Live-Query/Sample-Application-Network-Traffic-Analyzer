@@ -59,7 +59,7 @@ function WebBrowsers() {
             const parsedData = JSON.parse(event.data);
             const finalData = getRealtimeData(parsedData);
             // setData(finalData)
-            // console.log("Browser Data: ", finalData);
+            console.log("Browser Data: ", finalData);
   
             if (isMounted) {
               setData(finalData);

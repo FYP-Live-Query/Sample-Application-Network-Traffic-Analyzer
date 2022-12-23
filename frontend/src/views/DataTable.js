@@ -74,11 +74,11 @@ function DataTable() {
         onmessage(event) {
           // console.log(event.data);
           const parsedData = JSON.parse(event.data);
-          const finalData = getRealtimeData(parsedData);
-          console.log(finalData);
+          // const finalData = getRealtimeData(parsedData);
+          console.log(parsedData);
 
           if (isMounted) {
-            setData(finalData);
+            setData(parsedData);
           }
         },
         onclose() {
@@ -99,7 +99,7 @@ function DataTable() {
   
 
   const rows = data;
-  console.log(data)
+  // console.log(data)
   // const rows = [
   //   createData(data[0].ip, data[0].date, data[0].time, data[0].traffic),
   //   createData(data[1].ip, data[1].date, data[1].time, data[1].traffic),
@@ -127,10 +127,10 @@ function DataTable() {
               key={i}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell component="th" scope="row">{row.ip}</TableCell>
-              <TableCell align="right" >{row.date}</TableCell>
-              <TableCell align="right">{row.time}</TableCell>
-              <TableCell align="right">{Math.round(row.traffic/1000)/1000}GB</TableCell>
+              <TableCell component="th" scope="row">{row[0]}</TableCell>
+              <TableCell align="right" >{row[1]}</TableCell>
+              <TableCell align="right">{(new Date(parseInt(row[2]))).toTimeString().substring(0,9)}</TableCell>
+              <TableCell align="right">{Math.round(row[3]/1000)/1000}GB</TableCell>
             </TableRow>
           ))}
         </TableBody>
