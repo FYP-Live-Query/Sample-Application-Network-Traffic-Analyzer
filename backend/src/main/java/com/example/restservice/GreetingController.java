@@ -117,15 +117,33 @@ public class GreetingController {
                         " @map(type='json', fail.on.missing.attribute='false') )" +
                         "define stream inputStream (id String,key String,revision String,properties String);";
 //                System.out.println("SSS: "+inStreamDefinition0);
-                String query0 = ("@sink(type = 'log')" +
-                        "define stream OutputStream (id String,key String,revision String,properties String);" +
-                        "@info(name = 'query0') "
-                        + "from inputStream "
-                        + "select * "
-                        + "insert into outputStream;"
+                SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
+                        "SiddhiApp-dev-test",
+                        query,
+                        new LiveSource()
+                                .addSourceComposite(new KeyValue<>("host.name","api-peamouth-0b57f3c7.paas.macrometa.io"))
+                                .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
+                        new JsonMap()
+                                .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
+                                .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
+                        new JsonMapAttributes(),
+                        new LogSink(),
+                        new QueryInfo().setQueryName("SQL-SiddhiQL-dev-test")
                 );
+//                String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
+
+                String siddhiAppString = "@app:name('SiddhiApp-dev-test')\n" +
+                        "@source(type = 'live',host.name = 'api-peamouth-0b57f3c7.paas.macrometa.io',api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385',sql.query = 'SELECT ip,browser,date, traffic, eventtimestamp, initial_data FROM NetworkTrafficTable WHERE traffic > 9990000',@map(type = 'json',fail.on.missing.attribute = 'false',enclosing.element = '$.properties',@attributes(ip = 'ip',eventtimestamp = 'eventtimestamp',browser = 'browser',traffic = 'traffic',initial_data = 'initial_data',date = 'date')))\n" +
+                        "define stream NetworkTrafficTableInputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
+                        "@sink(type = 'log')\n" +
+                        "define stream NetworkTrafficTableOutputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
+                        "@info(name = 'SQL-SiddhiQL-dev-test')\n" +
+                        "from NetworkTrafficTableInputStream[traffic > 9990000 ]\n" +
+                        "select  ip  , browser  , date  , traffic  , eventtimestamp  , initial_data  \n" +
+                        "insert into NetworkTrafficTableOutputStream;";
+                System.out.println(siddhiAppString);
                 SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
-                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+                        .createSiddhiAppRuntime(siddhiAppString);
 
 
                 siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
