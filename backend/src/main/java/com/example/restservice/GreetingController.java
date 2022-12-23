@@ -36,6 +36,7 @@ import SiddhiApp.Annotation.Common.KeyValue;
 import SiddhiApp.Annotation.Info.QueryInfo;
 import SiddhiApp.Annotation.Map.JsonMap;
 import SiddhiApp.Annotation.Sink.LogSink;
+import SiddhiApp.Annotation.Sink.LiveSink;
 import SiddhiApp.Annotation.Source.LiveSource;
 import SiddhiApp.SiddhiApp;
 import Compiler.SiddhiAppGenerator;
@@ -105,7 +106,7 @@ public class GreetingController {
     @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
-
+        final long[] time = {System.currentTimeMillis()};
         BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
 //        System.out.println("Query: "+query);
 
@@ -140,20 +141,21 @@ public class GreetingController {
                                 .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
                                 .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
                         new JsonMapAttributes(),
+//                        new LogSink().addMapComposite(new JsonMap()),
                         new LogSink(),
                         new QueryInfo().setQueryName("SQL-SiddhiQL-dev-test")
                 );
-//                String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
+                String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
 
-                String siddhiAppString = "@app:name('SiddhiApp-dev-test')\n" +
-                        "@source(type = 'live',host.name = 'api-peamouth-0b57f3c7.paas.macrometa.io',api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385',sql.query = 'SELECT ip,browser,date, traffic, eventtimestamp, initial_data FROM NetworkTrafficTable WHERE traffic > 9990000',@map(type = 'json',fail.on.missing.attribute = 'false',enclosing.element = '$.properties',@attributes(ip = 'ip',eventtimestamp = 'eventtimestamp',browser = 'browser',traffic = 'traffic',initial_data = 'initial_data',date = 'date')))\n" +
-                        "define stream NetworkTrafficTableInputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
-                        "@sink(type = 'log')\n" +
-                        "define stream NetworkTrafficTableOutputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
-                        "@info(name = 'SQL-SiddhiQL-dev-test')\n" +
-                        "from NetworkTrafficTableInputStream[traffic > 9990000 ]\n" +
-                        "select  ip  , browser  , date  , traffic  , eventtimestamp  , initial_data  \n" +
-                        "insert into NetworkTrafficTableOutputStream;";
+//                String siddhiAppString = "@app:name('SiddhiApp-dev-test')\n" +
+//                        "@source(type = 'live',host.name = 'api-peamouth-0b57f3c7.paas.macrometa.io',api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385',sql.query = 'SELECT ip,browser,date, traffic, eventtimestamp, initial_data FROM NetworkTrafficTable WHERE traffic > 9990000',@map(type = 'json',fail.on.missing.attribute = 'false',enclosing.element = '$.properties',@attributes(ip = 'ip',eventtimestamp = 'eventtimestamp',browser = 'browser',traffic = 'traffic',initial_data = 'initial_data',date = 'date')))\n" +
+//                        "define stream NetworkTrafficTableInputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
+//                        "@sink(type = 'log')\n" +
+//                        "define stream NetworkTrafficTableOutputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
+//                        "@info(name = 'SQL-SiddhiQL-dev-test')\n" +
+//                        "from NetworkTrafficTableInputStream[traffic > 9990000 ]\n" +
+//                        "select  ip  , browser  , date  , traffic  , eventtimestamp  , initial_data  \n" +
+//                        "insert into NetworkTrafficTableOutputStream;";
                 System.out.println(siddhiAppString);
                 SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
                         .createSiddhiAppRuntime(siddhiAppString);
@@ -194,35 +196,41 @@ public class GreetingController {
 //                                emitter.complete();
                             }
 
-//                            list.add(edata[0].getData()[3]);
-//                            String json3 = edata[0].getData()[3].toString();
+                            list.add(edata[0].getData()[3]);
+                            String json3 = edata[0].getData()[3].toString();
+                            System.out.println("json3"+edata);
 //                            JSONObject json1=new JSONObject(json3);
 //                            String initial=json1.getString("initial_data");
-//                            System.out.println("initial"+initial);
-//                            if(Objects.equals(initial, "false")){
-//                                TimeInfo timeInfo = timeClient.getTime(inetAddress);
-//                                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
+                            String initial=edata[0].getData()[edata[0].getData().length-1].toString();
+                            System.out.println("initial"+initial);
+                            if(Objects.equals(initial, "false")) {
+                                if (System.currentTimeMillis() > time[0] + 3.6e+6) {
+                                    TimeInfo timeInfo = timeClient.getTime(inetAddress);
+                                    long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
 //                                long updatedTime=json1.getLong("eventTimestamp");
-////                                long traffic_latency = System.currentTimeMillis() - updatedTime;
-//                                long traffic_latency = returnTime - updatedTime;
-//                                System.out.println("current: "+System.currentTimeMillis()+" sync: "+returnTime+" updated_time: "+updatedTime+" traffic_latency: "+traffic_latency);
-////                            meterRegistry.summary("query1.latency1").record(traffic_latency);
-//                                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
-////                                meterRegistry.gauge("query1.latency1", traffic_latency);
-//                            }
-//                            if(list.size() == 5) {
-//                                emitter.send(list);
-//                                System.out.println("Sent!");
-////                                emitter.complete();
-//                                list.clear();
-//                            }
+                                    long updatedTime = (long) edata[0].getData()[edata[0].getData().length - 2];
+                                    long traffic_latency = returnTime - updatedTime;
+                                    System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+                                    meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                                    time[0] = System.currentTimeMillis();
+                                }
+                                else{
+                                    long updatedTime = (long) edata[0].getData()[edata[0].getData().length - 2];
+                                    long traffic_latency = System.currentTimeMillis() - updatedTime;
+                                    System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+                                    meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                                }
+                            }
+                            if(list.size() == 5) {
+                                emitter.send(list);
+                                System.out.println("Sent!");
+//                                emitter.complete();
+                                list.clear();
+                            }
                         }
-
-
                     } catch (Exception ex) {
                         emitter.completeWithError(ex);
                     }
-//            }
                 });
 
             }
