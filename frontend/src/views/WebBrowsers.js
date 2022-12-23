@@ -8,6 +8,7 @@ import BrowserService from "../service/BrowserService";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 const serverBaseURL = "http://localhost:8081";
+const newData = []
 // Example component that utilizes the `normalise` function at the point of render.
 function WebBrowsers() {
     const [data, setData] = useState([]);
@@ -57,7 +58,8 @@ function WebBrowsers() {
             // console.log(event.data);
             const parsedData = JSON.parse(event.data);
             const finalData = getRealtimeData(parsedData);
-            console.log(finalData);
+            // setData(finalData)
+            console.log("Browser Data: ", finalData);
   
             if (isMounted) {
               setData(finalData);
@@ -81,14 +83,17 @@ function WebBrowsers() {
 
 
     let browsers = data;
+   
     var total = 0;
     browsers.forEach(getSum);
     function getSum(item) {
+      if (Number.isInteger(item.totalCount)){
+        newData.push(item)
         total += item.totalCount;
+      }
     }
 
-
-    const browserData = browsers.map((item,i)=>(
+    const browserData = newData.map((item,i)=>(
         <Progress key = {i} data={item.browser} progress={(item.totalCount/total)*100}/>
     ));
 
@@ -99,11 +104,11 @@ function WebBrowsers() {
         </Box>
         <Box paddingTop={2}>
             {browserData}
-            {/* <Progress data={'Google Chrome'} progress={50}/>
-            <Progress data={'Microsoft Edge'} progress={50}/>
-            <Progress data={'Safari'} progress={50}/>
-            <Progress data={'Mozilla Firefox'} progress={50}/>
-            <Progress data={'Internet Explorer'} progress={50}/> */}
+            {/* <Progress data={'Google Chrome'} progress={(browsers[0].totalCount/total)*100}/>
+            <Progress data={'Microsoft Edge'} progress={(browsers[1].totalCount/total)*100}/>
+            <Progress data={'Safari'} progress={(browsers[2].totalCount/total)*100}/>
+            <Progress data={'Mozilla Firefox'} progress={(browsers[3].totalCount/total)*100}/>
+            <Progress data={'Internet Explorer'} progress={(browsers[4].totalCount/total)*100}/> */}
         </Box>
     </React.Fragment>
   );

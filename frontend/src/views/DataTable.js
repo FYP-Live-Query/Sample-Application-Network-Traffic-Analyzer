@@ -74,11 +74,11 @@ function DataTable() {
         onmessage(event) {
           // console.log(event.data);
           const parsedData = JSON.parse(event.data);
-          const finalData = getRealtimeData(parsedData);
-          console.log(finalData);
+          // const finalData = getRealtimeData(parsedData);
+          console.log(parsedData);
 
           if (isMounted) {
-            setData(finalData);
+            setData(parsedData);
           }
         },
         onclose() {
@@ -120,15 +120,17 @@ function DataTable() {
         </TableHead>
 
         <TableBody>
+
           {rows.slice(0).reverse().map((row, i) => (
+            
             <TableRow
               key={i}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell component="th" scope="row">{row.ip}</TableCell>
-              <TableCell align="right" >{row.date}</TableCell>
-              <TableCell align="right">{row.time}</TableCell>
-              <TableCell align="right">{Math.round(row.traffic/1000)/1000}GB</TableCell>
+              <TableCell component="th" scope="row">{row[0]}</TableCell>
+              <TableCell align="right" >{row[1]}</TableCell>
+              <TableCell align="right">{(new Date(parseInt(row[2]))).toTimeString().substring(0,9)}</TableCell>
+              <TableCell align="right">{Math.round(row[3]/1000)/1000}GB</TableCell>
             </TableRow>
           ))}
         </TableBody>

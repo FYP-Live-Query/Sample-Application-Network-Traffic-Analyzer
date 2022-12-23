@@ -48,7 +48,7 @@ function Home() {
       </Box>
       
       <DataTable />
-      <WebBrowsers />
+      {/* <WebBrowsers /> */}
     </div>
   );
 }
