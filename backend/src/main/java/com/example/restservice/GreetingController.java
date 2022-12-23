@@ -293,10 +293,10 @@ public class GreetingController {
                         // we could send more events
                         while(events.isEmpty()) {
                             Event[] edata = events.take();
-                            System.out.println(edata[0].getData()[3]);
+//                            System.out.println(edata[0].getData()[3]);
                             String json7 = edata[0].getData()[3].toString();
                             list.add(edata[0].getData()[3]);
-                            System.out.println("new!!!!"+json7);
+//                            System.out.println("new!!!!"+json7);
 //                            String json_browser = edata[0].getData()[3].toString();
 //                            JSONObject json2=new JSONObject(json_browser);
 //                            Long updatedTime2=json2.getLong("eventTimeStamp");
@@ -395,8 +395,8 @@ public class GreetingController {
                         while(events.isEmpty()) {
                             Event[] edata = events.take();
                             LocalTime currentTime = java.time.LocalTime.now();
-                            System.out.println("Timestamp: "+currentTime);
-                            System.out.println(edata[0].getData()[3]);
+//                            System.out.println("Timestamp: "+currentTime);
+//                            System.out.println(edata[0].getData()[3]);
                             list.add(edata[0].getData()[3]);
                             if(list.size() == 5) {
                                 list.add(currentTime);
