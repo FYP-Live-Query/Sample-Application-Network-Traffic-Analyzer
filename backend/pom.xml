@@ -35,14 +35,14 @@
 			<artifactId>io.siddhi.extension.io.live</artifactId>
 			<version>1.0.5</version>
 			<scope>system</scope>
-			<systemPath>/home/nuvindu/Downloads/siddhi-io-live-1.0.0-SNAPSHOT (2).jar</systemPath>
+			<systemPath>/home/vinoja/Downloads/siddhi-io-live-1.0.6-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.c8db</groupId>
 			<artifactId>c8db</artifactId>
 			<version>1.1.25.2</version>
 			<scope>system</scope>
-			<systemPath>/home/nuvindu/Downloads/c84j-1.1.25.2-SNAPSHOT (1).jar</systemPath>
+			<systemPath>/home/vinoja/Downloads/c84j-1.1.25.2-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>SQLtoSiddhiQL</groupId>
