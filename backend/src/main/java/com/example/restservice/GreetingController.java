@@ -190,15 +190,15 @@ public class GreetingController {
                             Event[] edata = events.take();
                             System.out.println("Edata: " + edata[0].getData());
                             list.add(edata[0].getData());
-                            if (list.size() == 5) {
-                                emitter.send(list);
-                                list.clear();
-//                                emitter.complete();
-                            }
+//                            if (list.size() == 5) {
+//                                emitter.send(list);
+//                                list.clear();
+////                                emitter.complete();
+//                            }
 
-                            list.add(edata[0].getData()[3]);
-                            String json3 = edata[0].getData()[3].toString();
-                            System.out.println("json3"+edata);
+//                            list.add(edata[0].getData()[3]);
+//                            String json3 = edata[0].getData()[3].toString();
+//                            System.out.println("json3"+edata);
 //                            JSONObject json1=new JSONObject(json3);
 //                            String initial=json1.getString("initial_data");
                             String initial=edata[0].getData()[edata[0].getData().length-1].toString();
@@ -221,11 +221,10 @@ public class GreetingController {
                                     meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
                                 }
                             }
-                            if(list.size() == 5) {
+                            if (list.size() == 5) {
                                 emitter.send(list);
-                                System.out.println("Sent!");
-//                                emitter.complete();
                                 list.clear();
+//                                emitter.complete();
                             }
                         }
                     } catch (Exception ex) {
