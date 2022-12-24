@@ -8,7 +8,7 @@ import BrowserService from "../service/BrowserService";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 const serverBaseURL = "http://localhost:8081";
-const newData = []
+// const newData = []
 // Example component that utilizes the `normalise` function at the point of render.
 function WebBrowsers() {
     const [data, setData] = useState([]);
@@ -57,12 +57,12 @@ function WebBrowsers() {
           onmessage(event) {
             // console.log(event.data);
             const parsedData = JSON.parse(event.data);
-            const finalData = getRealtimeData(parsedData);
+            // const finalData = getRealtimeData(parsedData);
             // setData(finalData)
-            console.log("Browser Data: ", finalData);
+            console.log("Browser Data: ", parsedData);
   
             if (isMounted) {
-              setData(finalData);
+              setData(parsedData);
             }
           },
           onclose() {
@@ -82,19 +82,19 @@ function WebBrowsers() {
     }, []);
 
 
-    let browsers = data;
-   
+    // let browsers = data;
+    let newData = data;
     var total = 0;
-    browsers.forEach(getSum);
+    newData.forEach(getSum);
     function getSum(item) {
-      if (Number.isInteger(item.totalCount)){
-        newData.push(item)
-        total += item.totalCount;
+      if (Number.isInteger(item[1])){
+        // newData.push(item)
+        total += item[1];
       }
     }
 
     const browserData = newData.map((item,i)=>(
-        <Progress key = {i} data={item.browser} progress={(item.totalCount/total)*100}/>
+        <Progress key = {i} data={item[0]} progress={(item[1]/total)*100}/>
     ));
 
   return (

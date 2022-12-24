@@ -47,9 +47,9 @@
 		<dependency>
 			<groupId>SQLtoSiddhiQL</groupId>
 			<artifactId>SQLtoSiddhiQL</artifactId>
-			<version>0.8.0</version>
+			<version>0.8.3</version>
 			<scope>system</scope>
-			<systemPath>/home/nuvindu/Downloads/SQLtoSiddhiQL-0.8.0-SNAPSHOT.jar</systemPath>
+			<systemPath>/home/nuvindu/Downloads/SQLtoSiddhiQL-0.8.3-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
