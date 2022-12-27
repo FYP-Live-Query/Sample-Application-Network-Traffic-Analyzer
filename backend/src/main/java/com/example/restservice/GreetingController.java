@@ -36,6 +36,7 @@ import SiddhiApp.Annotation.Common.KeyValue;
 import SiddhiApp.Annotation.Info.QueryInfo;
 import SiddhiApp.Annotation.Map.JsonMap;
 import SiddhiApp.Annotation.Sink.LogSink;
+import SiddhiApp.Annotation.Sink.LiveSink;
 import SiddhiApp.Annotation.Source.LiveSource;
 import SiddhiApp.SiddhiApp;
 import Compiler.SiddhiAppGenerator;
@@ -105,7 +106,7 @@ public class GreetingController {
     @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter handleSse() throws CredentialException, IOException, InterruptedException {
-
+        final long[] time = {System.currentTimeMillis()};
         BlockingDeque<Event[]> events = new LinkedBlockingDeque<>(10);
 //        System.out.println("Query: "+query);
 
@@ -140,20 +141,21 @@ public class GreetingController {
                                 .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
                                 .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
                         new JsonMapAttributes(),
+//                        new LogSink().addMapComposite(new JsonMap()),
                         new LogSink(),
                         new QueryInfo().setQueryName("SQL-SiddhiQL-dev-test")
                 );
-//                String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
+                String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
 
-                String siddhiAppString = "@app:name('SiddhiApp-dev-test')\n" +
-                        "@source(type = 'live',host.name = 'api-peamouth-0b57f3c7.paas.macrometa.io',api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385',sql.query = 'SELECT ip,browser,date, traffic, eventtimestamp, initial_data FROM NetworkTrafficTable WHERE traffic > 9990000',@map(type = 'json',fail.on.missing.attribute = 'false',enclosing.element = '$.properties',@attributes(ip = 'ip',eventtimestamp = 'eventtimestamp',browser = 'browser',traffic = 'traffic',initial_data = 'initial_data',date = 'date')))\n" +
-                        "define stream NetworkTrafficTableInputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
-                        "@sink(type = 'log')\n" +
-                        "define stream NetworkTrafficTableOutputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
-                        "@info(name = 'SQL-SiddhiQL-dev-test')\n" +
-                        "from NetworkTrafficTableInputStream[traffic > 9990000 ]\n" +
-                        "select  ip  , browser  , date  , traffic  , eventtimestamp  , initial_data  \n" +
-                        "insert into NetworkTrafficTableOutputStream;";
+//                String siddhiAppString = "@app:name('SiddhiApp-dev-test')\n" +
+//                        "@source(type = 'live',host.name = 'api-peamouth-0b57f3c7.paas.macrometa.io',api.key = 'Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385',sql.query = 'SELECT ip,browser,date, traffic, eventtimestamp, initial_data FROM NetworkTrafficTable WHERE traffic > 9990000',@map(type = 'json',fail.on.missing.attribute = 'false',enclosing.element = '$.properties',@attributes(ip = 'ip',eventtimestamp = 'eventtimestamp',browser = 'browser',traffic = 'traffic',initial_data = 'initial_data',date = 'date')))\n" +
+//                        "define stream NetworkTrafficTableInputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
+//                        "@sink(type = 'log')\n" +
+//                        "define stream NetworkTrafficTableOutputStream(ip string,browser string,date string,traffic int,eventtimestamp long,initial_data string);\n" +
+//                        "@info(name = 'SQL-SiddhiQL-dev-test')\n" +
+//                        "from NetworkTrafficTableInputStream[traffic > 9990000 ]\n" +
+//                        "select  ip  , browser  , date  , traffic  , eventtimestamp  , initial_data  \n" +
+//                        "insert into NetworkTrafficTableOutputStream;";
                 System.out.println(siddhiAppString);
                 SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
                         .createSiddhiAppRuntime(siddhiAppString);
@@ -186,43 +188,48 @@ public class GreetingController {
                         // we could send more events
                         while(true) {
                             Event[] edata = events.take();
-                            System.out.println("Edata: " + edata[0].getData());
+//                            System.out.println("Edata: " + edata[0].getData());
                             list.add(edata[0].getData());
+//                            if (list.size() == 5) {
+//                                emitter.send(list);
+//                                list.clear();
+////                                emitter.complete();
+//                            }
+
+//                            list.add(edata[0].getData()[3]);
+//                            String json3 = edata[0].getData()[3].toString();
+//                            System.out.println("json3"+edata);
+//                            JSONObject json1=new JSONObject(json3);
+//                            String initial=json1.getString("initial_data");
+                            String initial=edata[0].getData()[edata[0].getData().length-1].toString();
+//                            System.out.println("initial"+initial);
+                            if(Objects.equals(initial, "false")) {
+                                if (System.currentTimeMillis() > time[0] + 3.6e+6) {
+                                    TimeInfo timeInfo = timeClient.getTime(inetAddress);
+                                    long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
+//                                long updatedTime=json1.getLong("eventTimestamp");
+                                    long updatedTime = (long) edata[0].getData()[edata[0].getData().length - 2];
+                                    long traffic_latency = returnTime - updatedTime;
+                                    System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+                                    meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                                    time[0] = System.currentTimeMillis();
+                                }
+                                else{
+                                    long updatedTime = (long) edata[0].getData()[edata[0].getData().length - 2];
+                                    long traffic_latency = System.currentTimeMillis() - updatedTime;
+                                    System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+                                    meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                                }
+                            }
                             if (list.size() == 5) {
                                 emitter.send(list);
                                 list.clear();
 //                                emitter.complete();
                             }
-
-//                            list.add(edata[0].getData()[3]);
-//                            String json3 = edata[0].getData()[3].toString();
-//                            JSONObject json1=new JSONObject(json3);
-//                            String initial=json1.getString("initial_data");
-//                            System.out.println("initial"+initial);
-//                            if(Objects.equals(initial, "false")){
-//                                TimeInfo timeInfo = timeClient.getTime(inetAddress);
-//                                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
-//                                long updatedTime=json1.getLong("eventTimestamp");
-////                                long traffic_latency = System.currentTimeMillis() - updatedTime;
-//                                long traffic_latency = returnTime - updatedTime;
-//                                System.out.println("current: "+System.currentTimeMillis()+" sync: "+returnTime+" updated_time: "+updatedTime+" traffic_latency: "+traffic_latency);
-////                            meterRegistry.summary("query1.latency1").record(traffic_latency);
-//                                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
-////                                meterRegistry.gauge("query1.latency1", traffic_latency);
-//                            }
-//                            if(list.size() == 5) {
-//                                emitter.send(list);
-//                                System.out.println("Sent!");
-////                                emitter.complete();
-//                                list.clear();
-//                            }
                         }
-
-
                     } catch (Exception ex) {
                         emitter.completeWithError(ex);
                     }
-//            }
                 });
 
             }
@@ -245,28 +252,28 @@ public class GreetingController {
         Runnable siddhi = new Runnable() {
             @Override
             public void run() {
-                while (query == null) {
-                    continue;
-                }
-                String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
-                        "@source(type='live',sql.query='"+browserQuery+"', " +
-                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
-                        "api.key = '"+apiKey+"', " +
-                        " @map(type='json', fail.on.missing.attribute='false') )" +
-                        "define stream inputStream (id String,key String,revision String,properties String);";
-//                System.out.println("SSS: "+inStreamDefinition0);
-                String query0 = ("@sink(type = 'log')" +
-                        "define stream OutputStream (id String,key String,revision String,properties String);" +
-                        "@info(name = 'query0') "
-                        + "from inputStream "
-                        + "select * "
-                        + "insert into outputStream;"
+                while (browserQuery == null) {}
+
+                SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
+                        "SiddhiApp-dev-test2",
+                        browserQuery,
+                        new LiveSource()
+                                .addSourceComposite(new KeyValue<>("host.name","api-peamouth-0b57f3c7.paas.macrometa.io"))
+                                .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
+                        new JsonMap()
+                                .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
+                                .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
+                        new JsonMapAttributes(),
+                        new LogSink().addMapComposite(new JsonMap()),
+                        new QueryInfo().setQueryName("SQL-SiddhiQL-dev-test2")
                 );
-                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager1
-                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+                String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
+                System.out.println(siddhiAppString);
+                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
+                        .createSiddhiAppRuntime(siddhiAppString);
 
 
-                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
+                siddhiAppRuntime0.addCallback("SQL-SiddhiQL-dev-test2", new QueryCallback() {
                     @Override
                     public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
@@ -289,27 +296,24 @@ public class GreetingController {
 
                 nonBlockingService.execute(() -> {
                     try {
-                        List<Object> list = new ArrayList<>(5);
+                        List<Object> list = new ArrayList<>(4);
                         // we could send more events
-                        while(events.isEmpty()) {
+                        while(true) {
                             Event[] edata = events.take();
-//                            System.out.println(edata[0].getData()[3]);
-                            String json7 = edata[0].getData()[3].toString();
-                            list.add(edata[0].getData()[3]);
-//                            System.out.println("new!!!!"+json7);
-//                            String json_browser = edata[0].getData()[3].toString();
-//                            JSONObject json2=new JSONObject(json_browser);
-//                            Long updatedTime2=json2.getLong("eventTimeStamp");
-//                            Long browser_latency = System.currentTimeMillis() - updatedTime2;
-//                            System.out.println("browser_latency:"+browser_latency);
-                            if(list.size() == 5) {
+                            System.out.println("Edata2 : " + edata[0].getData());
+                            list.add(edata[0].getData());
+                            if (list.size() == 4) {
                                 emitter.send(list);
                                 list.clear();
+//                                emitter.complete();
                             }
                         }
+
+
                     } catch (Exception ex) {
                         emitter.completeWithError(ex);
                     }
+//            }
                 });
 
             }
@@ -331,58 +335,43 @@ public class GreetingController {
         siddhiManager2.setPersistenceStore(persistenceStore);
         siddhiManager2.setExtension("live", LiveSource.class);
         siddhiManager2.setExtension("map-json", JsonSourceMapper.class);
-        Runnable siddhi = new Runnable() {
-            @Override
-            public void run() {
-                while (dynamicQuery == null){
-                    continue;
-                }
-                String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
-                        "@source(type='live',sql.query='"+dynamicQuery+"', " +
-                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
-                        "api.key = '"+apiKey+"', " +
-                        " @map(type='json', fail.on.missing.attribute='false') )" +
-                        "define stream inputStream (id String,key String,revision String,properties String);";
-//                System.out.println("SSS: "+inStreamDefinition0);
-                String query0 = ("@sink(type = 'log')" +
-                        "define stream OutputStream (id String,key String,revision String,properties String);" +
-                        "@info(name = 'query0') "
-                        + "from inputStream "
-                        + "select * "
-                        + "insert into outputStream;"
-                );
-                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager2
-                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+        Runnable siddhi = () -> {
+            while (dynamicQuery == null) {}
 
-                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
-                    @Override
-                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+            SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
+                    "SQL-SiddhiQL-dev-test3",
+                    dynamicQuery,
+                    new LiveSource()
+                            .addSourceComposite(new KeyValue<>("host.name","api-peamouth-0b57f3c7.paas.macrometa.io"))
+                            .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
+                    new JsonMap()
+                            .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
+                            .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
+                    new JsonMapAttributes(),
+                    new LogSink().addMapComposite(new JsonMap()),
+                    new QueryInfo().setQueryName("SQL-SiddhiQL-dev-test3")
+            );
+            String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
+            System.out.println(siddhiAppString);
+            SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
+                    .createSiddhiAppRuntime(siddhiAppString);
 
-                        try {
-                            System.gc();
-                            System.runFinalization();
-                            Thread.sleep(1000);
-                            long before = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                            System.out.println("Memory Usage - Start: " + before);
 
-                            events.put(inEvents);
-                            System.gc();
-                            System.runFinalization();
-                            Thread.sleep(1000);
-                            long after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                            long objectSize = (after - before)%10^6;
-                            meterRegistry.summary("events.summary").record(objectSize);
-                            System.out.println("Memory Usage - Difference:" + objectSize);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+            siddhiAppRuntime0.addCallback("SQL-SiddhiQL-dev-test3", new QueryCallback() {
+                @Override
+                public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
+                    try {
+                        events.put(inEvents);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
-                });
-                siddhiAppRuntime0.start();
 
-            }
+                }
+            });
+            siddhiAppRuntime0.start();
         };
+
         SseEmitter emitter = new SseEmitter(-99l);
         Runnable sse = new Runnable() {
             @Override
@@ -392,17 +381,17 @@ public class GreetingController {
                     try {
                         List<Object> list = new ArrayList<>(5);
                         // we could send more events
-                        while(events.isEmpty()) {
+                        while(true) {
                             Event[] edata = events.take();
                             LocalTime currentTime = java.time.LocalTime.now();
 //                            System.out.println("Timestamp: "+currentTime);
-//                            System.out.println(edata[0].getData()[3]);
-                            list.add(edata[0].getData()[3]);
-                            if(list.size() == 5) {
-                                list.add(currentTime);
+                            System.out.println(edata);
+                            list.add(edata[0].getData());
+//                            if(list.size() == 5) {
+//                                list.add(currentTime);
                                 emitter.send(list);
-                                list.clear();
-                            }
+//                                list.clear();
+//                            }
                         }
                     } catch (Exception ex) {
                         emitter.completeWithError(ex);

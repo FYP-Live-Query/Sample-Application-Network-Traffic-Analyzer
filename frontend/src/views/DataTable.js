@@ -128,8 +128,8 @@ function DataTable() {
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
               <TableCell component="th" scope="row">{row[0]}</TableCell>
-              <TableCell align="right" >{row[1]}</TableCell>
-              <TableCell align="right">{(new Date(parseInt(row[2]))).toTimeString().substring(0,9)}</TableCell>
+              <TableCell align="right" >{row[2]}</TableCell>
+              <TableCell align="right">{(new Date(parseInt(row[4]))).toTimeString().substring(0,9)}</TableCell>
               <TableCell align="right">{Math.round(row[3]/1000)/1000}GB</TableCell>
             </TableRow>
           ))}

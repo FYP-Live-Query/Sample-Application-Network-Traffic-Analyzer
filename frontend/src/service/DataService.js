@@ -5,7 +5,7 @@ class DataService{
 
     postData(){
       return axios.post('http://localhost:8081/publish', { 
-        query: 'SELECT ip@string,browser@string,date@string, traffic@int, eventtimestamp@long, initial_data@string FROM networktraffictable WHERE traffic@int > 9990000',
+        query: 'SELECT ip@string,browser@string,date@string, traffic@int, eventtimestamp@long, initial_data@string FROM networktraffictable ORDER BY traffic@int DESC LIMIT 5',
         apiKey: localStorage.getItem('apiKey')
       });
 

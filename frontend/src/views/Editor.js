@@ -37,7 +37,7 @@ function QueryEditor() {
       onmessage(event) {
         
         const parsedData = JSON.parse(event.data);
-        // console.log(parsedData);
+        console.log(parsedData);
         // data.push(parsedData)
         // arr.push(parsedData);
         setData(parsedData);
@@ -51,24 +51,26 @@ function QueryEditor() {
 
         const divElement = document.getElementById('paragraph');
         
-        const newData = JSON.parse(parsedData[0]);
-        // console.log("New: ", newData.time);
-        prevData = JSON.stringify(prevData) === JSON.stringify({ip: '', date: '', browser: '', traffic: 0}) ? newData : prevData;
-        prevData = JSON.stringify(newData) === JSON.stringify(prevData) ? newData : prevData;
+        // const newData = JSON.parse(parsedData[0]);
+        // // console.log("New: ", newData.time);
+        // prevData = JSON.stringify(prevData) === JSON.stringify({ip: '', date: '', browser: '', traffic: 0}) ? newData : prevData;
+        // prevData = JSON.stringify(newData) === JSON.stringify(prevData) ? newData : prevData;
 
 
 
-        divElement.innerHTML += `<div id="whole" style="display: flex">` +
-        `<div id="time" style="flex: 1; margin-left: 52px; color: ${newData == prevData ? 'tomato' : 'blue'};"> Time: <br> ${parsedData[1].substring(0,8)} </div><br><br>` +
-        `<div id="ip" style="flex: 2; color: ${newData.ip == prevData.ip ? 'tomato' : 'blue'};">` + "IP Address: " + "<br>" + newData.ip + `</div>` +
-        `<div id="results" style="flex: 2; color: ${newData.date == prevData.date ? 'tomato' : 'blue'};">` + "Date: " + "<br>" + newData.date + '</div>' +
-        `<div id="browser" style="flex: 2; color: ${newData.browser == prevData.browser ? 'tomato' : 'blue'};">` + "Browsers: " + "<br>" + newData.browser + `</div>` +
-        `<div id="traffic" style="flex: 2; color: ${newData.traffic == prevData.traffic ? 'tomato' : 'blue'};"> Traffic: <br> ${newData.traffic} </div>` +
-        `</div>`;
-
+        // divElement.innerHTML += `<div id="whole" style="display: flex">` +
+        // `<div id="time" style="flex: 1; margin-left: 52px; color: ${newData == prevData ? 'tomato' : 'blue'};"> Time: <br> ${parsedData[1].substring(0,8)} </div><br><br>` +
+        // `<div id="ip" style="flex: 2; color: ${newData.ip == prevData.ip ? 'tomato' : 'blue'};">` + "IP Address: " + "<br>" + newData.ip + `</div>` +
+        // `<div id="results" style="flex: 2; color: ${newData.date == prevData.date ? 'tomato' : 'blue'};">` + "Date: " + "<br>" + newData.date + '</div>' +
+        // `<div id="browser" style="flex: 2; color: ${newData.browser == prevData.browser ? 'tomato' : 'blue'};">` + "Browsers: " + "<br>" + newData.browser + `</div>` +
+        // `<div id="traffic" style="flex: 2; color: ${newData.traffic == prevData.traffic ? 'tomato' : 'blue'};"> Traffic: <br> ${newData.traffic} </div>` +
+        // `</div>`;
+        divElement.innerHTML += parsedData;
         divElement.innerHTML += "<hr><br><br>" ;
         
-        prevData = newData;
+        // prevData = newData;
+
+
         // let traffic = document.getElementById('traffic');
         // if (newData.traffic == prevData.traffic) {          
         //   traffic.style.color = 'blue';
