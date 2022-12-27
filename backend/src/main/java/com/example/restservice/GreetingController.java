@@ -188,7 +188,7 @@ public class GreetingController {
                         // we could send more events
                         while(true) {
                             Event[] edata = events.take();
-                            System.out.println("Edata: " + edata[0].getData());
+//                            System.out.println("Edata: " + edata[0].getData());
                             list.add(edata[0].getData());
 //                            if (list.size() == 5) {
 //                                emitter.send(list);
@@ -202,7 +202,7 @@ public class GreetingController {
 //                            JSONObject json1=new JSONObject(json3);
 //                            String initial=json1.getString("initial_data");
                             String initial=edata[0].getData()[edata[0].getData().length-1].toString();
-                            System.out.println("initial"+initial);
+//                            System.out.println("initial"+initial);
                             if(Objects.equals(initial, "false")) {
                                 if (System.currentTimeMillis() > time[0] + 3.6e+6) {
                                     TimeInfo timeInfo = timeClient.getTime(inetAddress);
@@ -252,9 +252,8 @@ public class GreetingController {
         Runnable siddhi = new Runnable() {
             @Override
             public void run() {
-                while (browserQuery == null) {
-                    continue;
-                }
+                while (browserQuery == null) {}
+
                 SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
                         "SiddhiApp-dev-test2",
                         browserQuery,
@@ -336,58 +335,43 @@ public class GreetingController {
         siddhiManager2.setPersistenceStore(persistenceStore);
         siddhiManager2.setExtension("live", LiveSource.class);
         siddhiManager2.setExtension("map-json", JsonSourceMapper.class);
-        Runnable siddhi = new Runnable() {
-            @Override
-            public void run() {
-                while (dynamicQuery == null){
-                    continue;
-                }
-                String inStreamDefinition0 = "@App:name('TestSiddhiApp1')" +
-                        "@source(type='live',sql.query='"+dynamicQuery+"', " +
-                        "host.name='api-peamouth-0b57f3c7.paas.macrometa.io'," +
-                        "api.key = '"+apiKey+"', " +
-                        " @map(type='json', fail.on.missing.attribute='false') )" +
-                        "define stream inputStream (id String,key String,revision String,properties String);";
-//                System.out.println("SSS: "+inStreamDefinition0);
-                String query0 = ("@sink(type = 'log')" +
-                        "define stream OutputStream (id String,key String,revision String,properties String);" +
-                        "@info(name = 'query0') "
-                        + "from inputStream "
-                        + "select * "
-                        + "insert into outputStream;"
-                );
-                SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager2
-                        .createSiddhiAppRuntime(inStreamDefinition0 + query0);
+        Runnable siddhi = () -> {
+            while (dynamicQuery == null) {}
 
-                siddhiAppRuntime0.addCallback("query0", new QueryCallback() {
-                    @Override
-                    public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+            SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
+                    "SQL-SiddhiQL-dev-test3",
+                    dynamicQuery,
+                    new LiveSource()
+                            .addSourceComposite(new KeyValue<>("host.name","api-peamouth-0b57f3c7.paas.macrometa.io"))
+                            .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
+                    new JsonMap()
+                            .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
+                            .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
+                    new JsonMapAttributes(),
+                    new LogSink().addMapComposite(new JsonMap()),
+                    new QueryInfo().setQueryName("SQL-SiddhiQL-dev-test3")
+            );
+            String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
+            System.out.println(siddhiAppString);
+            SiddhiAppRuntime siddhiAppRuntime0 = siddhiManager
+                    .createSiddhiAppRuntime(siddhiAppString);
 
-                        try {
-                            System.gc();
-                            System.runFinalization();
-                            Thread.sleep(1000);
-                            long before = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                            System.out.println("Memory Usage - Start: " + before);
 
-                            events.put(inEvents);
-                            System.gc();
-                            System.runFinalization();
-                            Thread.sleep(1000);
-                            long after = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                            long objectSize = (after - before)%10^6;
-                            meterRegistry.summary("events.summary").record(objectSize);
-                            System.out.println("Memory Usage - Difference:" + objectSize);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+            siddhiAppRuntime0.addCallback("SQL-SiddhiQL-dev-test3", new QueryCallback() {
+                @Override
+                public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
 
+                    try {
+                        events.put(inEvents);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
-                });
-                siddhiAppRuntime0.start();
 
-            }
+                }
+            });
+            siddhiAppRuntime0.start();
         };
+
         SseEmitter emitter = new SseEmitter(-99l);
         Runnable sse = new Runnable() {
             @Override
@@ -397,17 +381,17 @@ public class GreetingController {
                     try {
                         List<Object> list = new ArrayList<>(5);
                         // we could send more events
-                        while(events.isEmpty()) {
+                        while(true) {
                             Event[] edata = events.take();
                             LocalTime currentTime = java.time.LocalTime.now();
 //                            System.out.println("Timestamp: "+currentTime);
-//                            System.out.println(edata[0].getData()[3]);
-                            list.add(edata[0].getData()[3]);
-                            if(list.size() == 5) {
-                                list.add(currentTime);
+                            System.out.println(edata);
+                            list.add(edata[0].getData());
+//                            if(list.size() == 5) {
+//                                list.add(currentTime);
                                 emitter.send(list);
-                                list.clear();
-                            }
+//                                list.clear();
+//                            }
                         }
                     } catch (Exception ex) {
                         emitter.completeWithError(ex);
