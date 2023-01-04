@@ -218,10 +218,117 @@ public class Controller {
         return sseEmitter;
     }
 
+    @GetMapping("/browsers")
+    @CrossOrigin
+    public SseEmitter browserData(String userId) throws CredentialException, IOException, InterruptedException {
+        final long[] time = {System.currentTimeMillis()};
+        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
+        SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
+
+        Runnable siddhiAppRunner = new Runnable() {
+
+            @Override
+            public void run() {
+                while (!browserUsers.containsKey(userId)) {
+//                    Thread.onSpinWait();
+                }
+                String userQuery = browserUsers.get(userId).getQuery();
+                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+                siddhiAppRuntime.start();
+            }
+        };
+
+        Runnable emitterRunner = new Runnable() {
+            @Override
+            public void run() {
+
+                executor.execute(() -> {
+                    try {
+                        List<Object> responses = new ArrayList<>(4);
+                        while(true) {
+                            Event[] event = linkedBlockingQueue.take();
+                            System.out.println("Browser Data: " + event[0].getData());
+                            responses.add(event[0].getData());
+                            String initial = event[0].getData()[event[0].getData().length-1].toString();
+                            System.out.println("Browser Latencies");
+                            calculateLatency(event, initial, time);
+                            System.out.println("...............");
+                            if (responses.size() == 4) {
+                                sseEmitter.send(responses);
+                                responses.clear();
+//                                emitter.complete();
+                            }
+                        }
+
+
+                    } catch (Exception ex) {
+                        sseEmitter.completeWithError(ex);
+                    }
+//            }
+                });
+
+            }
+        };
+
+        if (this.browserUsers.containsKey(userId) && this.browserUsers.get(userId).getSiddhiAppThread() != null) {
+            this.browserUsers.get(userId).getSiddhiAppThread().stop();
+        }
+        Thread siddhiAppThread = new Thread(siddhiAppRunner);
+        if (this.browserUsers.containsKey(userId)) {
+            this.browserUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
+        }
+        Thread emitterThread = new Thread(emitterRunner);
+        siddhiAppThread.start();
+        emitterThread.start();
+
+        return sseEmitter;
+    }
+
+    @GetMapping("/query")
+    @CrossOrigin
+    public SseEmitter anyQueryData(String userId) throws CredentialException, IOException, InterruptedException {
+
+        final long[] time = {System.currentTimeMillis()};
+        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
+        SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
+        Runnable siddhiAppRunner = new Runnable() {
+
+            @Override
+            public void run() {
+                while (!anyQueryUsers.containsKey(userId)) {
+//                    Thread.onSpinWait();
+                }
+                String userQuery = anyQueryUsers.get(userId).getQuery();
+                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+                siddhiAppRuntime.start();
+            }
+        };
+
+        Runnable emitterRunner = new Runnable() {
+            @Override
+            public void run() {
+
+                executor.execute(() -> {
+                    try {
+                        while(true) {
+                            Event[] event = linkedBlockingQueue.take();
+                            String initial = event[0].getData()[event[0].getData().length-1].toString();
+                            calculateLatency(event, initial, time);
+                            sseEmitter.send(event[0].getData());
+//                                emitter.complete();
+                        }
+                    } catch (Exception ex) {
+                        sseEmitter.completeWithError(ex);
+                    }
+//            }
+                });
+
+            }
+        };
 
         Thread siddhiAppThread = new Thread(siddhiAppRunner);
-        siddhiAppThread.start();
         Thread emitterThread = new Thread(emitterRunner);
+        siddhiAppThread.start();
         emitterThread.start();
         return sseEmitter;
     }
