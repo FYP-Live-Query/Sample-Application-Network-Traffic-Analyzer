@@ -326,7 +326,13 @@ public class Controller {
             }
         };
 
+        if (this.anyQueryUsers.containsKey(userId) && this.anyQueryUsers.get(userId).getSiddhiAppThread() != null) {
+            this.anyQueryUsers.get(userId).getSiddhiAppThread().stop();
+        }
         Thread siddhiAppThread = new Thread(siddhiAppRunner);
+        if (this.anyQueryUsers.containsKey(userId)) {
+            this.anyQueryUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
+        }
         Thread emitterThread = new Thread(emitterRunner);
         siddhiAppThread.start();
         emitterThread.start();
