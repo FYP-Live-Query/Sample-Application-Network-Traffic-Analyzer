@@ -204,6 +204,20 @@ public class Controller {
             }
         };
 
+        if (this.trafficUsers.containsKey(userId) && this.trafficUsers.get(userId).getSiddhiAppThread() != null) {
+            this.trafficUsers.get(userId).getSiddhiAppThread().stop();
+        }
+
+        Thread siddhiAppThread = new Thread(siddhiAppRunner);
+        if (this.trafficUsers.containsKey(userId)) {
+            this.trafficUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
+        }
+        siddhiAppThread.start();
+        Thread emitterThread = new Thread(emitterRunner);
+        emitterThread.start();
+        return sseEmitter;
+    }
+
 
         Thread siddhiAppThread = new Thread(siddhiAppRunner);
         siddhiAppThread.start();
