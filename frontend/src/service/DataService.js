@@ -6,7 +6,8 @@ class DataService{
     postData(){
       return axios.post('http://localhost:8081/publish', { 
         query: 'SELECT ip@string,browser@string,date@string, traffic@int, eventtimestamp@long, initial_data@string FROM networktraffictable ORDER BY traffic@int DESC LIMIT 5',
-        apiKey: localStorage.getItem('apiKey')
+        apiKey: localStorage.getItem('apiKey'),
+        id: "QWERTY"
       });
 
     }
@@ -14,7 +15,8 @@ class DataService{
     postQuery(query) {
       return axios.post('http://localhost:8081/setQuery', { 
         query: query,
-        apiKey: localStorage.getItem('apiKey')
+        apiKey: localStorage.getItem('apiKey'),
+        id: "QWERTY"
       });
     }
   }

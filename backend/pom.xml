@@ -5,16 +5,16 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.7.1</version>
+		<version>2.7.7</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.example</groupId>
-	<artifactId>rest-service-initial</artifactId>
+	<groupId>com.livequery</groupId>
+	<artifactId>prototype</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>rest-service-initial</name>
-	<description>Demo project for Spring Boot</description>
+	<name>prototype</name>
+	<description>Prototype for the Live Query System</description>
 	<properties>
-		<java.version>1.8</java.version>
+		<java.version>11</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -35,21 +35,28 @@
 			<artifactId>io.siddhi.extension.io.live</artifactId>
 			<version>1.0.5</version>
 			<scope>system</scope>
-			<systemPath>/home/vinoja/Downloads/siddhi-io-live-1.0.6-SNAPSHOT.jar</systemPath>
+			<systemPath>${project.basedir}/src/main/resources/siddhi-io-live-1.0.0-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.c8db</groupId>
 			<artifactId>c8db</artifactId>
 			<version>1.1.25.2</version>
 			<scope>system</scope>
-			<systemPath>/home/vinoja/Downloads/c84j-1.1.25.2-SNAPSHOT.jar</systemPath>
+			<systemPath>${project.basedir}/src/main/resources/c84j-1.1.25.2-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>SQLtoSiddhiQL</groupId>
 			<artifactId>SQLtoSiddhiQL</artifactId>
-			<version>0.8.3</version>
+			<version>0.8.5</version>
 			<scope>system</scope>
-			<systemPath>/home/nuvindu/Downloads/SQLtoSiddhiQL-0.8.3-SNAPSHOT.jar</systemPath>
+			<systemPath>${project.basedir}/src/main/resources/sqltosiddhiql-0.8.6-SNAPSHOT.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>commons-net</groupId>
+			<artifactId>commons-net</artifactId>
+			<version>3.9.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/main/resources/commons-net-3.9.0.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
