@@ -68,6 +68,64 @@ public class Controller {
         this.anyQueryUsers = new HashMap<>();
     }
 
+    private static SseEmitter getSseEmitter() {
+        SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
+
+        sseEmitter.onCompletion(() -> LOGGER.info("SseEmitter is completed"));
+
+        sseEmitter.onTimeout(() -> LOGGER.info("SseEmitter is timed out"));
+
+        sseEmitter.onError((ex) -> LOGGER.info("SseEmitter got error:", ex));
+        return sseEmitter;
+    }
+
+    private SiddhiAppRuntime getSiddhiAppRuntime(LinkedBlockingQueue<Event[]> linkedBlockingQueue, String query) {
+        SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
+                "SiddhiApp-dev-test",
+                query,
+                new SiddhiAppComposites.Annotation.Source.LiveSource()
+                        .addSourceComposite(new KeyValue<>("host.name","api-peamouth-0b57f3c7.paas.macrometa.io"))
+                        .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
+                new JsonMap()
+                        .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
+                        .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
+                new JsonMapAttributes(),
+                new LogSink(),
+                new QueryInfo().setQueryName("SQL-SiddhiQL-dev-test")
+        );
+
+        String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
+        System.out.println(siddhiAppString);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiAppString);
+        siddhiAppRuntime.addCallback("SQL-SiddhiQL-dev-test", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                linkedBlockingQueue.add(inEvents);
+            }
+        });
+        return siddhiAppRuntime;
+    }
+
+    private void calculateLatency(Event[] event, String initial, long[] time) throws IOException {
+        if(Objects.equals(initial, "false")) {
+            if (System.currentTimeMillis() > time[0] + 3.6e+6) {
+                TimeInfo timeInfo = timeClient.getTime(inetAddress);
+                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
+//                                long updatedTime=json1.getLong("eventTimestamp");
+                long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
+                long traffic_latency = returnTime - updatedTime;
+                System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                time[0] = System.currentTimeMillis();
+            }
+            else {
+                long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
+                long traffic_latency = System.currentTimeMillis() - updatedTime;
+                System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+            }
+        }
+    }
     @PostMapping("/publish")
     @CrossOrigin
     public UserInfo publishQuery(@RequestBody UserInfo userInfo) {
