@@ -126,6 +126,7 @@ public class Controller {
             }
         }
     }
+
     @PostMapping("/publish")
     @CrossOrigin
     public UserInfo publishQuery(@RequestBody UserInfo userInfo) {
@@ -157,4 +158,57 @@ public class Controller {
     }
 
 
+    @GetMapping("/traffic")
+    @CrossOrigin
+    public SseEmitter trafficData(String userId) throws CredentialException, IOException, InterruptedException {
+        final long[] time = {System.currentTimeMillis()};
+        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
+
+        Runnable siddhiAppRunner = new Runnable() {
+
+            @Override
+            public void run() {
+                while (!trafficUsers.containsKey(userId)) {
+//                    Thread.onSpinWait();
+                }
+                String userQuery = trafficUsers.get(userId).getQuery();
+                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+                trafficUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
+                siddhiAppRuntime.start();
+            }
+        };
+        SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
+        Runnable emitterRunner = new Runnable() {
+            @Override
+            public void run() {
+
+                executor.execute(() -> {
+                    try {
+                        List<Object> responses = new ArrayList<>(5);
+                        while(true) {
+                            Event[] event = linkedBlockingQueue.take();
+                            responses.add(event[0].getData());
+                            String initial = event[0].getData()[event[0].getData().length-1].toString();
+                            calculateLatency(event, initial, time);
+                            if (responses.size() == 5) {
+                                sseEmitter.send(responses);
+                                responses.clear();
+//                                emitter.complete();
+                            }
+                        }
+                    } catch (Exception ex) {
+                        sseEmitter.completeWithError(ex);
+                    }
+                });
+
+            }
+        };
+
+
+        Thread siddhiAppThread = new Thread(siddhiAppRunner);
+        siddhiAppThread.start();
+        Thread emitterThread = new Thread(emitterRunner);
+        emitterThread.start();
+        return sseEmitter;
+    }
 }
