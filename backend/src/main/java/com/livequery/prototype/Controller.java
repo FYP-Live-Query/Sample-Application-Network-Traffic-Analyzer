@@ -3,7 +3,9 @@ package com.livequery.prototype;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -337,5 +339,37 @@ public class Controller {
         siddhiAppThread.start();
         emitterThread.start();
         return sseEmitter;
+    }
+
+    @GetMapping("/time")
+    @CrossOrigin
+    public SseEmitter streamDateTime() {
+
+        SseEmitter sseEmitter = getSseEmitter();
+
+        executor.execute(() -> {
+            for (int i = 0; i < 15; i++) {
+                try {
+                    sseEmitter.send(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm:ss")));
+                    sleep(1, sseEmitter);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    sseEmitter.completeWithError(e);
+                }
+            }
+            sseEmitter.complete();
+        });
+
+        LOGGER.info("Controller exits");
+        return sseEmitter;
+    }
+
+    private void sleep(int seconds, SseEmitter sseEmitter) {
+        try {
+            Thread.sleep(seconds * 1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            sseEmitter.completeWithError(e);
+        }
     }
 }
