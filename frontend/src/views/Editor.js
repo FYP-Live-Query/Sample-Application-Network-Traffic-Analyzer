@@ -18,7 +18,7 @@ function QueryEditor() {
       // const [data, setData] = useState([]);
   const fetchData = async (query) => {
     await DataService.postQuery(query);
-    await fetchEventSource(`${serverBaseURL}/query`, {
+    await fetchEventSource(`${serverBaseURL}/query?userId=QWERTY`, {
       method: "GET",
       headers: {
         Accept: "text/event-stream",

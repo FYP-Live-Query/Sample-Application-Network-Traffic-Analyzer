@@ -8,14 +8,6 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import DataService from "../service/DataService";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-} from "recharts";
 import Tooltip from '@mui/material/Tooltip';
 const serverBaseURL = "http://localhost:8081";
 
@@ -40,7 +32,7 @@ function DataTable() {
   //   };
   // }, []);
   const [data, setData] = useState([]);
-
+  let eventSource;
   useEffect(() => {
 
     let isMounted = true;
@@ -54,8 +46,9 @@ function DataTable() {
     }
 
     const fetchData = async () => {
+      
       await DataService.postData();
-      await fetchEventSource(`${serverBaseURL}/traffic`, {
+      eventSource = await fetchEventSource(`${serverBaseURL}/traffic?userId=QWERTY`, {
         method: "GET",
         headers: {
           Accept: "text/event-stream",
@@ -72,7 +65,7 @@ function DataTable() {
           }
         },
         onmessage(event) {
-          // console.log(event.data);
+          console.log(event.data);
           const parsedData = JSON.parse(event.data);
           // const finalData = getRealtimeData(parsedData);
           console.log(parsedData);
@@ -94,6 +87,7 @@ function DataTable() {
     return () => {
       // 👇️ when component unmounts, set isMounted to false
       isMounted = false;
+      eventSource.close();
     };
   }, []);
   

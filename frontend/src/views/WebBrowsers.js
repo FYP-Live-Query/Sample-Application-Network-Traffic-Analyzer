@@ -38,7 +38,7 @@ function WebBrowsers() {
   
       const fetchData = async () => {
         await BrowserService.postData();
-        await fetchEventSource(`${serverBaseURL}/browsers`, {
+        await fetchEventSource(`${serverBaseURL}/browsers?userId=QWERTY`, {
           method: "GET",
           headers: {
             Accept: "text/event-stream",
@@ -55,7 +55,7 @@ function WebBrowsers() {
             }
           },
           onmessage(event) {
-            // console.log(event.data);
+            console.log(event.data);
             const parsedData = JSON.parse(event.data);
             // const finalData = getRealtimeData(parsedData);
             // setData(finalData)
