@@ -7,4 +7,9 @@ spring:
                 enabled: true
                 paths: classpath:public
                 mapping: /**
-
+    jpa:
+        database-platform: org.hibernate.dialect.MySQL8Dialect
+        properties:
+            hibernate:
+                jdbc:
+                    time_zone: UTC
