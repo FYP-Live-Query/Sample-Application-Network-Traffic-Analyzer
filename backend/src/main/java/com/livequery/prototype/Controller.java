@@ -108,7 +108,7 @@ public class Controller {
         return siddhiAppRuntime;
     }
 
-    private void calculateLatency(Event[] event, String initial, long[] time) throws IOException {
+    private void calculateLatency(Event[] event, String initial, long[] time, String prometheus_query) throws IOException {
         if(Objects.equals(initial, "false")) {
             if (System.currentTimeMillis() > time[0] + 3.6e+6) {
                 TimeInfo timeInfo = timeClient.getTime(inetAddress);
@@ -117,14 +117,14 @@ public class Controller {
                 long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
                 long traffic_latency = returnTime - updatedTime;
                 System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
-                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
                 time[0] = System.currentTimeMillis();
             }
             else {
                 long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
                 long traffic_latency = System.currentTimeMillis() - updatedTime;
                 System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
-                meterRegistry.timer("query1.latency").record(Duration.ofMillis(traffic_latency));
+                meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
             }
         }
     }
@@ -191,7 +191,7 @@ public class Controller {
                             Event[] event = linkedBlockingQueue.take();
                             responses.add(event[0].getData());
                             String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, initial, time);
+                            calculateLatency(event, initial, time,userId);
                             if (responses.size() == 5) {
                                 sseEmitter.send(responses);
                                 responses.clear();
@@ -253,7 +253,7 @@ public class Controller {
                             responses.add(event[0].getData());
                             String initial = event[0].getData()[event[0].getData().length-1].toString();
                             System.out.println("Browser Latencies");
-                            calculateLatency(event, initial, time);
+                            calculateLatency(event, initial, time,userId);
                             System.out.println("...............");
                             if (responses.size() == 4) {
                                 sseEmitter.send(responses);
@@ -315,7 +315,7 @@ public class Controller {
                         while(true) {
                             Event[] event = linkedBlockingQueue.take();
                             String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, initial, time);
+                            calculateLatency(event, initial, time,userId);
                             sseEmitter.send(event[0].getData());
 //                                emitter.complete();
                         }
