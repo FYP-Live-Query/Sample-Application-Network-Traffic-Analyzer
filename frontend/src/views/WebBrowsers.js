@@ -7,7 +7,7 @@ import Progress from './Progress';
 import BrowserService from "../service/BrowserService";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 
-const serverBaseURL = "http://localhost:8081";
+const serverBaseURL = "http://20.127.233.86:8081";
 // const newData = []
 // Example component that utilizes the `normalise` function at the point of render.
 function WebBrowsers() {

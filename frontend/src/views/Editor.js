@@ -9,7 +9,7 @@ import DataService from '../service/DataService';
 
 
 
-const serverBaseURL = "http://localhost:8081";
+const serverBaseURL = "http://20.127.233.86:8081";
 
 function QueryEditor() {
   const [data, setData] = useState([]);

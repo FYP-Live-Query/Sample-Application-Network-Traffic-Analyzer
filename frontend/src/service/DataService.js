@@ -4,7 +4,7 @@ import axios from 'axios';
 class DataService{
 
     postData(){
-      return axios.post('http://localhost:8081/publish', { 
+      return axios.post('http://20.127.233.86:8081/publish', { 
         query: 'SELECT ip@string,browser@string,date@string, traffic@int, eventtimestamp@long, initial_data@string FROM networktraffictable ORDER BY traffic@int DESC LIMIT 5',
         apiKey: localStorage.getItem('apiKey'),
         id: "QWERTY"
@@ -13,7 +13,7 @@ class DataService{
     }
 
     postQuery(query) {
-      return axios.post('http://localhost:8081/setQuery', { 
+      return axios.post('http://20.127.233.86:8081/setQuery', { 
         query: query,
         apiKey: localStorage.getItem('apiKey'),
         id: "QWERTY"

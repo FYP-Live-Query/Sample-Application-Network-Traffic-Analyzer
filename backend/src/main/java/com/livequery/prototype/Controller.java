@@ -191,7 +191,7 @@ public class Controller {
                             Event[] event = linkedBlockingQueue.take();
                             responses.add(event[0].getData());
                             String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, initial, time,userId);
+                            calculateLatency(event, initial, time, "query1.latency");
                             if (responses.size() == 5) {
                                 sseEmitter.send(responses);
                                 responses.clear();

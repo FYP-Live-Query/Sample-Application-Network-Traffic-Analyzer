@@ -13,7 +13,8 @@
     "api-server": "node api-server.js",
     "api-server:dev": "nodemon api-server.js",
     "dev": "npm-run-all --parallel spa api-server:dev",
-    "prod": "npm-run-all --parallel server api-server"
+    "prod": "npm-run-all --parallel server api-server",
+    "proxy": "http://localhost:3001"
   },
   "dependencies": {
     "@auth0/auth0-react": "^1.11.0",

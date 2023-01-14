@@ -9,7 +9,7 @@ import Paper from '@mui/material/Paper';
 import DataService from "../service/DataService";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import Tooltip from '@mui/material/Tooltip';
-const serverBaseURL = "http://localhost:8081";
+const serverBaseURL = "http://20.127.233.86:8081";
 
 function createData(source, date, time, traffic) {
   return { source, date, time, traffic };
