@@ -116,14 +116,14 @@ public class Controller {
 //                                long updatedTime=json1.getLong("eventTimestamp");
                 long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
                 long traffic_latency = returnTime - updatedTime;
-                System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+//                System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
                 meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
                 time[0] = System.currentTimeMillis();
             }
             else {
                 long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
                 long traffic_latency = System.currentTimeMillis() - updatedTime;
-                System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+//                System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
                 meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
             }
         }
