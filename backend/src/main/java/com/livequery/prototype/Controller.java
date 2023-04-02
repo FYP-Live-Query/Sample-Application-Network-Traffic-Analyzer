@@ -117,36 +117,23 @@ public class Controller {
     }
 
     private void calculateLatency(Event[] event, String initial, long[] time, String prometheus_query) throws IOException {
-//        if(Objects.equals(initial, "false")) {
-//        long current =System.currentTimeMillis();
-        LocalDateTime localDateTime = LocalDateTime.now(ZoneId.of("Asia/Colombo"));
-        Instant instant = localDateTime.atZone(ZoneId.of("Asia/Colombo")).toInstant();
-        long current = instant.toEpochMilli();
-            if (System.currentTimeMillis() > time[0] + 3.6e+6) {
-                TimeInfo timeInfo = timeClient.getTime(inetAddress);
-                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
-//                                long updatedTime=json1.getLong("eventTimestamp");
-//                long updatedTime = (long) event[0].getData()[event[0].getData().length - 1];
-        long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
-                long traffic_latency = returnTime - updatedTime;
-        System.out.println("current"+returnTime);
-        System.out.println("updated: "+updatedTime);
-        System.out.println("latency: "+traffic_latency);
-//                System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
-                meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
-                time[0] = System.currentTimeMillis();
-            }
-            else {
-                System.out.println("time"+event[0].getData()[event[0].getData().length - 1].toString());
-                System.out.println("current"+System.currentTimeMillis());
-                long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
-                long traffic_latency = System.currentTimeMillis() - updatedTime;
-                System.out.println("latency: "+traffic_latency);
-//                System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
-                meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
-            }
-//        }
+        long current = System.currentTimeMillis();
+        if (System.currentTimeMillis() > time[0] + 3.6e+6) {
+            TimeInfo timeInfo = timeClient.getTime(inetAddress);
+            long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
+            long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
+            long traffic_latency = returnTime - updatedTime;
+            System.out.println("current: " + current + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+            meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
+            time[0] = System.currentTimeMillis();
+        } else {
+            long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
+            long traffic_latency = current - updatedTime;
+            meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
+            System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+        }
     }
+
 
     @PostMapping("/publish")
     @CrossOrigin
@@ -321,6 +308,7 @@ public class Controller {
                 }
                 String userQuery = anyQueryUsers.get(userId).getQuery();
                 SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+                System.out.println("queue1: "+linkedBlockingQueue.size());
                 siddhiAppRuntime.start();
             }
         };
@@ -332,9 +320,11 @@ public class Controller {
                 executor.execute(() -> {
                     try {
                         while(true) {
+                            System.out.println("queue"+linkedBlockingQueue.size());
                             Event[] event = linkedBlockingQueue.take();
-                            String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, initial, time,"query.latency");
+                            System.out.println("event arrived");
+//                            String initial = event[0].getData()[event[0].getData().length-1].toString();
+                            calculateLatency(event, "", time,"query.latency");
                             sseEmitter.send(event[0].getData());
 //                                emitter.complete();
                         }
