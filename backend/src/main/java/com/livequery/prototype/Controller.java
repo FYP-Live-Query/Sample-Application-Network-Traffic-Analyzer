@@ -8,6 +8,10 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 //import com.c8db.C8DB;
 //import com.c8db.http.HTTPEndPoint;
@@ -40,7 +44,7 @@ import SiddhiAppComposites.Annotation.Map.JsonMap;
 import SiddhiAppComposites.Annotation.Sink.LogSink;
 import SiddhiAppComposites.Annotation.Source.LiveSource;
 import SiddhiAppComposites.SiddhiApp;
-import Compiler.SiddhiAppGenerator;
+import SiddhiAppComposites.SiddhiAppGenerator;
 
 @RestController
 public class Controller {
@@ -56,10 +60,11 @@ public class Controller {
     private HashMap<String, UserInfo> anyQueryUsers;
     String TIME_SERVER = "time-a.nist.gov";
     NTPUDPClient timeClient = new NTPUDPClient();
+    private final PersistenceStore persistenceStore;
     private final InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
 
     public Controller(MeterRegistry meterRegistry) throws UnknownHostException {
-        PersistenceStore persistenceStore = new InMemoryPersistenceStore();
+        this.persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
         this.siddhiManager.setPersistenceStore(persistenceStore);
         this.siddhiManager.setExtension("live", io.siddhi.extension.io.live.source.LiveSource.class);
@@ -82,11 +87,12 @@ public class Controller {
     }
 
     private SiddhiAppRuntime getSiddhiAppRuntime(LinkedBlockingQueue<Event[]> linkedBlockingQueue, String query) {
+        String siddhiAppName ="SiddhiApp-dev-test";
         SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
-                "SiddhiApp-dev-test",
+                siddhiAppName,
                 query,
                 new SiddhiAppComposites.Annotation.Source.LiveSource()
-                        .addSourceComposite(new KeyValue<>("host.name","api-peamouth-0b57f3c7.paas.macrometa.io"))
+                        .addSourceComposite(new KeyValue<>("host.name","10.8.100.246:9092"))
                         .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
                 new JsonMap()
                         .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
@@ -98,6 +104,8 @@ public class Controller {
 
         String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
         System.out.println(siddhiAppString);
+        persistenceStore.save(siddhiAppName,"table.name",siddhiApp.getTableName().getBytes());
+        persistenceStore.save(siddhiAppName,"database.name","inventory".getBytes());
         SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiAppString);
         siddhiAppRuntime.addCallback("SQL-SiddhiQL-dev-test", new QueryCallback() {
             @Override
@@ -109,24 +117,35 @@ public class Controller {
     }
 
     private void calculateLatency(Event[] event, String initial, long[] time, String prometheus_query) throws IOException {
-        if(Objects.equals(initial, "false")) {
+//        if(Objects.equals(initial, "false")) {
+//        long current =System.currentTimeMillis();
+        LocalDateTime localDateTime = LocalDateTime.now(ZoneId.of("Asia/Colombo"));
+        Instant instant = localDateTime.atZone(ZoneId.of("Asia/Colombo")).toInstant();
+        long current = instant.toEpochMilli();
             if (System.currentTimeMillis() > time[0] + 3.6e+6) {
                 TimeInfo timeInfo = timeClient.getTime(inetAddress);
                 long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
 //                                long updatedTime=json1.getLong("eventTimestamp");
-                long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
+//                long updatedTime = (long) event[0].getData()[event[0].getData().length - 1];
+        long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
                 long traffic_latency = returnTime - updatedTime;
+        System.out.println("current"+returnTime);
+        System.out.println("updated: "+updatedTime);
+        System.out.println("latency: "+traffic_latency);
 //                System.out.println("current: " + System.currentTimeMillis() + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
                 meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
                 time[0] = System.currentTimeMillis();
             }
             else {
-                long updatedTime = (long) event[0].getData()[event[0].getData().length - 2];
+                System.out.println("time"+event[0].getData()[event[0].getData().length - 1].toString());
+                System.out.println("current"+System.currentTimeMillis());
+                long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
                 long traffic_latency = System.currentTimeMillis() - updatedTime;
+                System.out.println("latency: "+traffic_latency);
 //                System.out.println("current: " + System.currentTimeMillis() + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
                 meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
             }
-        }
+//        }
     }
 
     @PostMapping("/publish")
@@ -315,7 +334,7 @@ public class Controller {
                         while(true) {
                             Event[] event = linkedBlockingQueue.take();
                             String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, initial, time,userId);
+                            calculateLatency(event, initial, time,"query.latency");
                             sseEmitter.send(event[0].getData());
 //                                emitter.complete();
                         }
