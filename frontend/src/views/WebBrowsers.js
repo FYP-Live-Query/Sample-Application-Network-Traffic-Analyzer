@@ -13,8 +13,7 @@ const serverBaseURL = "http://localhost:8081";
 function WebBrowsers() {
     const [data, setData] = useState([]);
 
-    useEffect(() => {
-  
+    useEffect(() => { 
       let isMounted = true;
       const browserNames = {
         'chr': 'Google Chrome',

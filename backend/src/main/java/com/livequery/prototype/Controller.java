@@ -40,7 +40,7 @@ import SiddhiAppComposites.Annotation.Map.JsonMap;
 import SiddhiAppComposites.Annotation.Sink.LogSink;
 import SiddhiAppComposites.Annotation.Source.LiveSource;
 import SiddhiAppComposites.SiddhiApp;
-import Compiler.SiddhiAppGenerator;
+import SiddhiAppComposites.SiddhiAppGenerator;
 
 @RestController
 public class Controller {
@@ -57,9 +57,9 @@ public class Controller {
     String TIME_SERVER = "time-a.nist.gov";
     NTPUDPClient timeClient = new NTPUDPClient();
     private final InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
-
+    private final PersistenceStore persistenceStore;
     public Controller(MeterRegistry meterRegistry) throws UnknownHostException {
-        PersistenceStore persistenceStore = new InMemoryPersistenceStore();
+        this.persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
         this.siddhiManager.setPersistenceStore(persistenceStore);
         this.siddhiManager.setExtension("live", io.siddhi.extension.io.live.source.LiveSource.class);
@@ -86,7 +86,7 @@ public class Controller {
                 "SiddhiApp-dev-test",
                 query,
                 new SiddhiAppComposites.Annotation.Source.LiveSource()
-                        .addSourceComposite(new KeyValue<>("host.name","api-peamouth-0b57f3c7.paas.macrometa.io"))
+                        .addSourceComposite(new KeyValue<>("host.name","10.8.100.246:9092"))
                         .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
                 new JsonMap()
                         .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
@@ -98,6 +98,9 @@ public class Controller {
 
         String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
         System.out.println(siddhiAppString);
+        this.persistenceStore.save("SiddhiApp-dev-test","table.name",siddhiApp.getTableName().getBytes());
+        this.persistenceStore.save("SiddhiApp-dev-test","database.name","inventory".getBytes());
+
         SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiAppString);
         siddhiAppRuntime.addCallback("SQL-SiddhiQL-dev-test", new QueryCallback() {
             @Override
@@ -162,7 +165,8 @@ public class Controller {
 
     @GetMapping("/traffic")
     @CrossOrigin
-    public SseEmitter trafficData(String userId) throws CredentialException, IOException, InterruptedException {
+    public SseEmitter trafficData() throws CredentialException, IOException, InterruptedException {
+        String userId = "ZXCVB";
         final long[] time = {System.currentTimeMillis()};
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
 
