@@ -55,7 +55,7 @@
 			<artifactId>SQLtoSiddhiQL</artifactId>
 			<version>0.8.5</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/src/main/resources/sqltosiddhiql-0.9.8-SNAPSHOT.jar</systemPath>
+			<systemPath>${project.basedir}/src/main/resources/sqltosiddhiql-0.9.9-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>commons-net</groupId>
@@ -169,6 +169,18 @@
 		<build>
 			<plugins>
 				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>3.2.0</version>
+					<configuration>
+						<archive>
+							<manifest>
+								<mainClass>com.livequery.prototype.PrototypeApplication</mainClass>
+							</manifest>
+						</archive>
+					</configuration>
+				</plugin>
+				<plugin>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-maven-plugin</artifactId>
 					<executions>
@@ -178,6 +190,87 @@
 							</goals>
 							<configuration>
 								<classifier>exec</classifier>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-shade-plugin</artifactId>
+					<version>3.4.1</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>shade</goal>
+							</goals>
+							<configuration>
+								<transformers>
+									<transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+										<resource>META-INF/README</resource>
+										<file>README.txt</file>
+									</transformer>
+								</transformers>
+
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-install-plugin</artifactId>
+					<version>2.5.2</version>
+					<executions>
+						<execution>
+							<id>install1</id>
+							<phase>package</phase>
+							<goals>
+								<goal>install-file</goal>
+							</goals>
+							<configuration>
+								<file>src/main/resources/siddhi-io-live-1.0.0-SNAPSHOT.jar</file>
+								<groupId>io.siddhi.extension.io.live</groupId>
+								<artifactId>io.siddhi.extension.io.live</artifactId>
+								<version>1.0</version>
+							</configuration>
+						</execution>
+						<execution>
+							<id>install2</id>
+							<phase>package</phase>
+							<goals>
+								<goal>install-file</goal>
+							</goals>
+							<configuration>
+								<file>${project.basedir}/src/main/resources/c84j-1.1.25.2-SNAPSHOT.jar</file>
+								<groupId>com.c8db</groupId>
+								<artifactId>c8db</artifactId>
+								<version>1.1.25.2</version>
+							</configuration>
+						</execution>
+						<execution>
+							<id>install3</id>
+							<phase>package</phase>
+							<goals>
+								<goal>install-file</goal>
+							</goals>
+							<configuration>
+								<file>${project.basedir}/src/main/resources/sqltosiddhiql-0.9.9-SNAPSHOT.jar</file>
+								<groupId>SQLtoSiddhiQL</groupId>
+								<artifactId>SQLtoSiddhiQL</artifactId>
+								<version>0.8.5</version>
+							</configuration>
+						</execution>
+						<execution>
+							<id>install4</id>
+							<phase>package</phase>
+							<goals>
+								<goal>install-file</goal>
+							</goals>
+							<configuration>
+								<file>${project.basedir}/src/main/resources/commons-net-3.9.0.jar</file>
+								<groupId>commons-net</groupId>
+								<artifactId>commons-net</artifactId>
+								<version>3.9.0</version>
 							</configuration>
 						</execution>
 					</executions>
