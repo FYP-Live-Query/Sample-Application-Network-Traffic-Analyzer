@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import javax.security.auth.login.CredentialException;
 import java.net.InetAddress;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
@@ -62,7 +63,8 @@ public class Controller {
     NTPUDPClient timeClient = new NTPUDPClient();
     private final PersistenceStore persistenceStore;
     private final InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
-    private final PersistenceStore persistenceStore;
+
+    private final AtomicInteger iterateID = new AtomicInteger(0);
     public Controller(MeterRegistry meterRegistry) throws UnknownHostException {
         this.persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
@@ -169,7 +171,11 @@ public class Controller {
     @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter trafficData() throws CredentialException, IOException, InterruptedException {
-        String userId = "ZXCVB";
+//        String userId = "id-";
+        StringBuilder str1 = new StringBuilder("id-");
+        str1.append(iterateID.incrementAndGet());
+        String userId = str1.toString();
+
         final long[] time = {System.currentTimeMillis()};
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
 
