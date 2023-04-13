@@ -4,14 +4,9 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 //import com.c8db.C8DB;
 //import com.c8db.http.HTTPEndPoint;
@@ -20,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import io.siddhi.core.SiddhiAppRuntime;
 import io.siddhi.core.SiddhiManager;
 import io.siddhi.core.query.output.callback.QueryCallback;
+import io.siddhi.core.util.EventPrinter;
 import io.siddhi.core.util.persistence.InMemoryPersistenceStore;
 import io.siddhi.core.util.persistence.PersistenceStore;
 import io.siddhi.core.event.Event;
@@ -33,6 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import javax.security.auth.login.CredentialException;
 import java.net.InetAddress;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
@@ -62,7 +59,8 @@ public class Controller {
     NTPUDPClient timeClient = new NTPUDPClient();
     private final PersistenceStore persistenceStore;
     private final InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
-    private final PersistenceStore persistenceStore;
+
+    private final AtomicInteger iterateID = new AtomicInteger(0);
     public Controller(MeterRegistry meterRegistry) throws UnknownHostException {
         this.persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
@@ -110,7 +108,15 @@ public class Controller {
         siddhiAppRuntime.addCallback("SQL-SiddhiQL-dev-test", new QueryCallback() {
             @Override
             public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                final long[] time = {System.currentTimeMillis()};
+                try {
+                    calculateLatency(inEvents, "initial", time, "id-1");
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
                 linkedBlockingQueue.add(inEvents);
+//                System.out.println("Event in Siddhi: " + inEvents.length + " ,  queueSize: " + linkedBlockingQueue.size());
             }
         });
         return siddhiAppRuntime;
@@ -118,20 +124,20 @@ public class Controller {
 
     private void calculateLatency(Event[] event, String initial, long[] time, String prometheus_query) throws IOException {
         long current = System.currentTimeMillis();
-        if (System.currentTimeMillis() > time[0] + 3.6e+6) {
-            TimeInfo timeInfo = timeClient.getTime(inetAddress);
-            long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
-            long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
-            long traffic_latency = returnTime - updatedTime;
-            System.out.println("current: " + current + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
-            meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
-            time[0] = System.currentTimeMillis();
-        } else {
+//        if (System.currentTimeMillis() > time[0] + 3.6e+6) {
+//            TimeInfo timeInfo = timeClient.getTime(inetAddress);
+//            long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
+//            long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
+//            long traffic_latency = returnTime - updatedTime;
+//            System.out.println("current: " + current + " sync: " + returnTime + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+//            meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
+//            time[0] = System.currentTimeMillis();
+//        } else {
             long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
             long traffic_latency = current - updatedTime;
             meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
             System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
-        }
+//        }
     }
 
 
@@ -170,6 +176,10 @@ public class Controller {
     @CrossOrigin
     public SseEmitter trafficData() throws CredentialException, IOException, InterruptedException {
         String userId = "ZXCVB";
+        StringBuilder str1 = new StringBuilder("id-");
+        str1.append(iterateID.incrementAndGet());
+        String uniqueId = str1.toString();
+
         final long[] time = {System.currentTimeMillis()};
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
 
@@ -196,14 +206,15 @@ public class Controller {
                         List<Object> responses = new ArrayList<>(5);
                         while(true) {
                             Event[] event = linkedBlockingQueue.take();
-                            responses.add(event[0].getData());
-                            String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, initial, time,"query1.latency");
-                            if (responses.size() == 5) {
-                                sseEmitter.send(responses);
-                                responses.clear();
+//                            responses.add(event[0].getData());
+                            String initial = "event[0].getData()[event[0].getData().length-1].toString()";
+//                            calculateLatency(event, initial, time,uniqueId);
+//                            System.out.println("Event in Backend: " + event[0].getData());
+//                            if (responses.size() == 5) {
+//                                sseEmitter.send(event);
+//                                responses.clear();
 //                                emitter.complete();
-                            }
+//                            }
                         }
                     } catch (Exception ex) {
                         sseEmitter.completeWithError(ex);
@@ -326,6 +337,7 @@ public class Controller {
                             System.out.println("event arrived");
 //                            String initial = event[0].getData()[event[0].getData().length-1].toString();
                             calculateLatency(event, "", time,"query.latency");
+
                             sseEmitter.send(event[0].getData());
 //                                emitter.complete();
                         }
