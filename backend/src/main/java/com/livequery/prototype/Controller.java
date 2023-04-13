@@ -175,10 +175,10 @@ public class Controller {
     @GetMapping("/traffic")
     @CrossOrigin
     public SseEmitter trafficData() throws CredentialException, IOException, InterruptedException {
-//        String userId = "id-";
+        String userId = "ZXCVB";
         StringBuilder str1 = new StringBuilder("id-");
         str1.append(iterateID.incrementAndGet());
-        String userId = str1.toString();
+        String uniqueId = str1.toString();
 
         final long[] time = {System.currentTimeMillis()};
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
