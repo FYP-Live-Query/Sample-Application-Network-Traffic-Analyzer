@@ -98,7 +98,7 @@ public class Controller {
                 siddhiAppName,
                 query,
                 new SiddhiAppComposites.Annotation.Source.LiveSource()
-                        .addSourceComposite(new KeyValue<>("host.name","10.8.100.246:9092"))
+                        .addSourceComposite(new KeyValue<>("host.name","20.171.27.19:9092"))
                         .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
                 new JsonMap()
                         .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
@@ -116,13 +116,13 @@ public class Controller {
         siddhiAppRuntime.addCallback("SQL-SiddhiQL-dev-test", new QueryCallback() {
             @Override
             public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                final long[] time = {System.currentTimeMillis()};
-                try {
-                    calculateLatency(inEvents, "initial", time, "id-1");
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+//                final long[] time = {System.currentTimeMillis()};
+//                try {
+//                    calculateLatency(inEvents, "initial", time, "id-1");
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                EventPrinter.print(timeStamp, inEvents, removeEvents);
                 linkedBlockingQueue.add(inEvents);
 //                System.out.println("Event in Siddhi: " + inEvents.length + " ,  queueSize: " + linkedBlockingQueue.size());
             }
@@ -130,7 +130,7 @@ public class Controller {
         return siddhiAppRuntime;
     }
 
-    private void calculateLatency(Event[] event, String initial, long[] time, String prometheus_query) throws IOException {
+    private void calculateLatency(Event[] event, String initial, long[] time, String prometheus_query,long start) throws IOException {
         long current = System.currentTimeMillis();
 //        if (System.currentTimeMillis() > time[0] + 3.6e+6) {
 //            TimeInfo timeInfo = timeClient.getTime(inetAddress);
@@ -142,10 +142,12 @@ public class Controller {
 //            time[0] = System.currentTimeMillis();
 //        } else {
             long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
-            long traffic_latency = current - updatedTime;
-            latencyValues.add(traffic_latency);
-            meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
-            System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+            if(updatedTime>start){
+                long traffic_latency = current - updatedTime;
+                latencyValues.add(traffic_latency);
+                meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
+                System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+            }
 //        }
     }
 
@@ -256,7 +258,8 @@ public class Controller {
                             Event[] event = linkedBlockingQueue.take();
 //                            responses.add(event[0].getData());
                             String initial = "event[0].getData()[event[0].getData().length-1].toString()";
-//                            calculateLatency(event, initial, time,uniqueId);
+//                            System.out.println("Initial: " + initial);
+                            calculateLatency(event, initial, time,uniqueId,start);
 //                            System.out.println("Event in Backend: " + event[0].getData());
 //                            if (responses.size() == 5) {
 //                                sseEmitter.send(event);
@@ -290,6 +293,7 @@ public class Controller {
     @CrossOrigin
     public SseEmitter browserData(String userId) throws CredentialException, IOException, InterruptedException {
         final long[] time = {System.currentTimeMillis()};
+        long start =System.currentTimeMillis();
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
         SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
 
@@ -319,7 +323,7 @@ public class Controller {
                             responses.add(event[0].getData());
                             String initial = event[0].getData()[event[0].getData().length-1].toString();
                             System.out.println("Browser Latencies");
-                            calculateLatency(event, initial, time,userId);
+                            calculateLatency(event, initial, time,userId,start);
                             System.out.println("...............");
                             if (responses.size() == 4) {
                                 sseEmitter.send(responses);
@@ -357,6 +361,7 @@ public class Controller {
     public SseEmitter anyQueryData(String userId) throws CredentialException, IOException, InterruptedException {
 
         final long[] time = {System.currentTimeMillis()};
+        long start =System.currentTimeMillis();
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
         SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
         Runnable siddhiAppRunner = new Runnable() {
@@ -384,7 +389,7 @@ public class Controller {
                             Event[] event = linkedBlockingQueue.take();
                             System.out.println("event arrived");
 //                            String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, "", time,"query.latency");
+                            calculateLatency(event, "", time,"query.latency",start);
 
                             sseEmitter.send(event[0].getData());
 //                                emitter.complete();
