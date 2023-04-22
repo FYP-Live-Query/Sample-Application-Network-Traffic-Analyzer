@@ -224,6 +224,7 @@ public class Controller {
     public SseEmitter trafficData() throws CredentialException, IOException, InterruptedException {
         String userId = "ZXCVB";
         StringBuilder str1 = new StringBuilder("id-");
+        long start =System.currentTimeMillis();
         str1.append(iterateID.incrementAndGet());
         String uniqueId = str1.toString();
 
