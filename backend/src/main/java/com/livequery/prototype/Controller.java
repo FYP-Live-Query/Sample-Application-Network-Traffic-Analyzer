@@ -42,6 +42,12 @@ import SiddhiAppComposites.Annotation.Sink.LogSink;
 import SiddhiAppComposites.Annotation.Source.LiveSource;
 import SiddhiAppComposites.SiddhiApp;
 import SiddhiAppComposites.SiddhiAppGenerator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.io.FileWriter;
 
 @RestController
 public class Controller {
@@ -59,7 +65,8 @@ public class Controller {
     NTPUDPClient timeClient = new NTPUDPClient();
     private final PersistenceStore persistenceStore;
     private final InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
-
+    private final List<Long> latencyValues = new ArrayList<>();
+    private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
     private final AtomicInteger iterateID = new AtomicInteger(0);
     public Controller(MeterRegistry meterRegistry) throws UnknownHostException {
         this.persistenceStore = new InMemoryPersistenceStore();
@@ -71,6 +78,7 @@ public class Controller {
         this.trafficUsers = new HashMap<>();
         this.browserUsers = new HashMap<>();
         this.anyQueryUsers = new HashMap<>();
+        executorService.scheduleAtFixedRate(this::writeLatencyValuesToCsv, 1, 1, TimeUnit.MINUTES);
     }
 
     private static SseEmitter getSseEmitter() {
@@ -135,11 +143,50 @@ public class Controller {
 //        } else {
             long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
             long traffic_latency = current - updatedTime;
+            latencyValues.add(traffic_latency);
             meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
             System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
 //        }
     }
 
+    private void writeLatencyValuesToCsv() {
+        try {
+            // Calculate average and 90th percentile of latency values
+            double averageLatency = latencyValues.stream()
+                    .mapToLong(Long::longValue)
+                    .average()
+                    .orElse(Double.NaN);
+            double percentile95Latency = latencyValues.stream()
+                    .sorted()
+                    .skip((long) (latencyValues.size() * 0.95))
+                    .findFirst()
+                    .orElse(0L);
+            double percentile99Latency = latencyValues.stream()
+                    .sorted()
+                    .skip((long) (latencyValues.size() * 0.99))
+                    .findFirst()
+                    .orElse(0L);
+            // Write average and 90th percentile of latency values to CSV file
+            FileWriter csvWriter = new FileWriter("latency_values.csv", true);
+            csvWriter.append(Double.toString(averageLatency));
+            csvWriter.append(",");
+            csvWriter.append(Double.toString(percentile95Latency));
+            csvWriter.append(",");
+            csvWriter.append(Double.toString(percentile99Latency));
+            csvWriter.append("\n");
+            csvWriter.flush();
+            csvWriter.close();
+
+            // Clear the latency values list
+            latencyValues.clear();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void shutdown() {
+        // Shutdown the executor service when the program is exiting
+        executorService.shutdown();
+    }
 
     @PostMapping("/publish")
     @CrossOrigin
