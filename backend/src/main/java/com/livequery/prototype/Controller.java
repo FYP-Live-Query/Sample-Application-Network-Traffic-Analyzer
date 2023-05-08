@@ -98,7 +98,7 @@ public class Controller {
                 siddhiAppName,
                 query,
                 new SiddhiAppComposites.Annotation.Source.LiveSource()
-                        .addSourceComposite(new KeyValue<>("host.name","20.171.27.19:9092"))
+                        .addSourceComposite(new KeyValue<>("host.name","20.171.111.32:9092"))
                         .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
                 new JsonMap()
                         .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
@@ -122,7 +122,7 @@ public class Controller {
 //                } catch (IOException e) {
 //                    throw new RuntimeException(e);
 //                }
-//                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
                 linkedBlockingQueue.add(inEvents);
 //                System.out.println("Event in Siddhi: " + inEvents.length + " ,  queueSize: " + linkedBlockingQueue.size());
             }
@@ -142,12 +142,12 @@ public class Controller {
 //            time[0] = System.currentTimeMillis();
 //        } else {
             long updatedTime = Long.parseLong(event[0].getData()[event[0].getData().length - 1].toString());
-            if(updatedTime>start){
+//            if(updatedTime>start){
                 long traffic_latency = current - updatedTime;
                 latencyValues.add(traffic_latency);
                 meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
                 System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
-            }
+//            }
 //        }
     }
 
