@@ -274,7 +274,7 @@ public class Controller {
                 String userQuery = trafficUsers.get(userId).getQuery();
                 Boolean locationIsEnabled = trafficUsers.get(userId).getLocationIsEnabled();
                 String location;
-                if(locationIsEnabled==true){
+                if(locationIsEnabled){
                     try {
                         location = getUserLocation();
                     } catch (IOException e) {
@@ -350,7 +350,7 @@ public class Controller {
                 String userQuery = browserUsers.get(userId).getQuery();
                 Boolean locationIsEnabled = trafficUsers.get(userId).getLocationIsEnabled();
                 String location;
-                if(locationIsEnabled==true){
+                if(locationIsEnabled){
                     try {
                         location = getUserLocation();
                     } catch (IOException e) {
@@ -429,7 +429,7 @@ public class Controller {
                 String userQuery = anyQueryUsers.get(userId).getQuery();
                 Boolean locationIsEnabled = trafficUsers.get(userId).getLocationIsEnabled();
                 String location;
-                if(locationIsEnabled==true){
+                if(locationIsEnabled){
                     try {
                         location = getUserLocation();
                     } catch (IOException e) {
