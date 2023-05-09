@@ -1,7 +1,9 @@
 package com.livequery.prototype;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.UnknownHostException;
+import java.io.InputStreamReader;
+import java.net.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,7 +17,6 @@ import java.util.concurrent.*;
 import io.siddhi.core.SiddhiAppRuntime;
 import io.siddhi.core.SiddhiManager;
 import io.siddhi.core.query.output.callback.QueryCallback;
-import io.siddhi.core.util.EventPrinter;
 import io.siddhi.core.util.persistence.InMemoryPersistenceStore;
 import io.siddhi.core.util.persistence.PersistenceStore;
 import io.siddhi.core.event.Event;
@@ -28,18 +29,16 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import javax.security.auth.login.CredentialException;
-import java.net.InetAddress;
+import javax.servlet.http.HttpServletRequest;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.net.ntp.NTPUDPClient;
-import org.apache.commons.net.ntp.TimeInfo;
 
 import SiddhiAppComposites.Annotation.Attributes.JsonMapAttributes;
 import SiddhiAppComposites.Annotation.Common.KeyValue;
 import SiddhiAppComposites.Annotation.Info.QueryInfo;
 import SiddhiAppComposites.Annotation.Map.JsonMap;
 import SiddhiAppComposites.Annotation.Sink.LogSink;
-import SiddhiAppComposites.Annotation.Source.LiveSource;
 import SiddhiAppComposites.SiddhiApp;
 import SiddhiAppComposites.SiddhiAppGenerator;
 import java.util.ArrayList;
@@ -48,6 +47,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.io.FileWriter;
+import org.json.JSONObject;
 
 @RestController
 public class Controller {
@@ -68,7 +68,9 @@ public class Controller {
     private final List<Long> latencyValues = new ArrayList<>();
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
     private final AtomicInteger iterateID = new AtomicInteger(0);
-    public Controller(MeterRegistry meterRegistry) throws UnknownHostException {
+    private HttpServletRequest request;
+    public Controller(MeterRegistry meterRegistry,HttpServletRequest request) throws UnknownHostException {
+        this.request = request;
         this.persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
         this.siddhiManager.setPersistenceStore(persistenceStore);
@@ -92,14 +94,16 @@ public class Controller {
         return sseEmitter;
     }
 
-    private SiddhiAppRuntime getSiddhiAppRuntime(LinkedBlockingQueue<Event[]> linkedBlockingQueue, String query) {
+    private SiddhiAppRuntime getSiddhiAppRuntime(LinkedBlockingQueue<Event[]> linkedBlockingQueue, String query, boolean locationIsEnabled, String location) {
         String siddhiAppName ="SiddhiApp-dev-test";
         SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
                 siddhiAppName,
                 query,
                 new SiddhiAppComposites.Annotation.Source.LiveSource()
                         .addSourceComposite(new KeyValue<>("host.name","20.171.27.19:9092"))
-                        .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385")),
+                        .addSourceComposite(new KeyValue<>("api.key","Tu_TZ0W2cR92-sr1j-l7ACA.newone.9pej9tihskpx2vYZaxubGW3sFCJLzxe55NRh7T0uk1JMYiRmHdiQsWh5JhRXXT6c418385"))
+                        .addSourceComposite(new KeyValue<>("locationIsEnabled", locationIsEnabled))
+                        .addSourceComposite(new KeyValue<>("location", location)),
                 new JsonMap()
                         .addMapComposite(new KeyValue<>("fail.on.missing.attribute","false"))
                         .addMapComposite(new KeyValue<>("enclosing.element","$.properties")),
@@ -185,17 +189,44 @@ public class Controller {
             e.printStackTrace();
         }
     }
-    public void shutdown() {
-        // Shutdown the executor service when the program is exiting
-        executorService.shutdown();
-    }
+        public void shutdown() {
+            // Shutdown the executor service when the program is exiting
+            executorService.shutdown();
+        }
+        public String getUserLocation() throws IOException {
+//            String ipAddress = request.getRemoteAddr();
+            String ipAddress = "52.188.147.245";
+            System.out.println("ip: "+ipAddress);
+            URL url = new URL("https://ipapi.co/" + ipAddress + "/json/");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            JSONObject jsonObject = new JSONObject(response.toString());
+            String country = jsonObject.getString("country");
+//            String region = jsonObject.getString("region");
+//            String city = jsonObject.getString("city");
+//            String timeZone = jsonObject.getString("timezone");
+
+            return country;
+        }
 
     @PostMapping("/publish")
     @CrossOrigin
-    public UserInfo publishQuery(@RequestBody UserInfo userInfo) {
+    public UserInfo publishQuery(@RequestBody UserInfo userInfo) throws IOException {
+        System.out.println("location: "+getUserLocation());
         System.out.println("Query: "+ userInfo.getQuery());
         System.out.println("API: "+ userInfo.getApiKey());
         System.out.println("ID: "+ userInfo.getId());
+        System.out.println("LocationIsEnabled: "+ userInfo.getLocationIsEnabled());
         this.trafficUsers.put(userInfo.getId(), userInfo);
         return userInfo;
     }
@@ -241,7 +272,19 @@ public class Controller {
 //                    Thread.onSpinWait();
                 }
                 String userQuery = trafficUsers.get(userId).getQuery();
-                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+                Boolean locationIsEnabled = trafficUsers.get(userId).getLocationIsEnabled();
+                String location;
+                if(locationIsEnabled==true){
+                    try {
+                        location = getUserLocation();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                else{
+                    location = "none";
+                }
+                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery, locationIsEnabled, location);
                 trafficUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
                 siddhiAppRuntime.start();
             }
@@ -305,7 +348,19 @@ public class Controller {
 //                    Thread.onSpinWait();
                 }
                 String userQuery = browserUsers.get(userId).getQuery();
-                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+                Boolean locationIsEnabled = trafficUsers.get(userId).getLocationIsEnabled();
+                String location;
+                if(locationIsEnabled==true){
+                    try {
+                        location = getUserLocation();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                else{
+                    location = "none";
+                }
+                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery, locationIsEnabled,location);
                 siddhiAppRuntime.start();
             }
         };
@@ -372,7 +427,19 @@ public class Controller {
 //                    Thread.onSpinWait();
                 }
                 String userQuery = anyQueryUsers.get(userId).getQuery();
-                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+                Boolean locationIsEnabled = trafficUsers.get(userId).getLocationIsEnabled();
+                String location;
+                if(locationIsEnabled==true){
+                    try {
+                        location = getUserLocation();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                else{
+                    location = "none";
+                }
+                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery, locationIsEnabled, location);
                 System.out.println("queue1: "+linkedBlockingQueue.size());
                 siddhiAppRuntime.start();
             }

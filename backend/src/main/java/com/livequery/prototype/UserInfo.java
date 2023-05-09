@@ -1,19 +1,20 @@
 package com.livequery.prototype;
 
 import io.siddhi.core.SiddhiAppRuntime;
-import io.siddhi.query.api.SiddhiApp;
 
 public class UserInfo {
     String query;
     String id;
     String apiKey;
+    Boolean location;
 
     SiddhiAppRuntime siddhiAppRuntime;
     Thread siddhiAppThread;
-    public UserInfo(String query, String id, String apiKey) {
+    public UserInfo(String query, String id, String apiKey, Boolean location) {
         this.query = query;
         this.id = id;
         this.apiKey = apiKey;
+        this.location = location;
         this.siddhiAppRuntime = null;
         this.siddhiAppThread = null;
     }
@@ -30,6 +31,9 @@ public class UserInfo {
         return apiKey;
     }
 
+    public Boolean getLocationIsEnabled() {
+        return location;
+    }
     public SiddhiAppRuntime getSiddhiAppRuntime() {
         return siddhiAppRuntime;
     }
