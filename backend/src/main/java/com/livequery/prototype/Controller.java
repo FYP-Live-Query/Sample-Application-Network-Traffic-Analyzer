@@ -194,8 +194,8 @@ public class Controller {
             executorService.shutdown();
         }
         public String getUserLocation() throws IOException {
-//            String ipAddress = request.getRemoteAddr();
-            String ipAddress = "52.188.147.245";
+            String ipAddress = request.getRemoteAddr();
+//            String ipAddress = "20.51.237.16";
             System.out.println("ip: "+ipAddress);
             URL url = new URL("https://ipapi.co/" + ipAddress + "/json/");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
