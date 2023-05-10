@@ -6,15 +6,15 @@ public class UserInfo {
     String query;
     String id;
     String apiKey;
-    Boolean location;
+    Boolean locationEnabled;
 
     SiddhiAppRuntime siddhiAppRuntime;
     Thread siddhiAppThread;
-    public UserInfo(String query, String id, String apiKey, Boolean location) {
+    public UserInfo(String query, String id, String apiKey, Boolean locationEnabled) {
         this.query = query;
         this.id = id;
         this.apiKey = apiKey;
-        this.location = location;
+        this.locationEnabled = locationEnabled;
         this.siddhiAppRuntime = null;
         this.siddhiAppThread = null;
     }
@@ -32,7 +32,7 @@ public class UserInfo {
     }
 
     public Boolean getLocationIsEnabled() {
-        return location;
+        return locationEnabled;
     }
     public SiddhiAppRuntime getSiddhiAppRuntime() {
         return siddhiAppRuntime;
