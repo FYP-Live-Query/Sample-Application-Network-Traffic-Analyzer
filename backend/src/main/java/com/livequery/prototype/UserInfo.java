@@ -1,5 +1,6 @@
 package com.livequery.prototype;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.siddhi.core.SiddhiAppRuntime;
 import io.siddhi.query.api.SiddhiApp;
 
@@ -10,7 +11,8 @@ public class UserInfo {
 
     SiddhiAppRuntime siddhiAppRuntime;
     Thread siddhiAppThread;
-    public UserInfo(String query, String id, String apiKey) {
+
+    public UserInfo(@JsonProperty("query") String query, @JsonProperty("id") String id, @JsonProperty("apiKey") String apiKey) {
         this.query = query;
         this.id = id;
         this.apiKey = apiKey;
