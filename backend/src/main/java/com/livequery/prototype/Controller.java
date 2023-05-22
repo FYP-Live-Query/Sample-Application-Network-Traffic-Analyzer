@@ -2,11 +2,14 @@ package com.livequery.prototype;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
+import java.nio.file.StandardCopyOption;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.siddhi.core.SiddhiAppRuntime;
@@ -173,6 +176,18 @@ public class Controller {
             csvWriter.append("\n");
             csvWriter.flush();
             csvWriter.close();
+
+            // Generate or obtain the CSV file
+            Path csvFilePath = Path.of("latency_values.csv");
+
+            // Specify the destination directory in the Docker volume
+            Path destinationDirectory = Path.of("/app");
+
+            // Create the directory if it doesn't exist
+            Files.createDirectories(destinationDirectory);
+
+            // Use Files.copy() to save the CSV file to the Docker volume
+            Files.copy(csvFilePath, destinationDirectory.resolve(csvFilePath.getFileName()), StandardCopyOption.REPLACE_EXISTING);
 
             // Clear the latency values list
             latencyValues.clear();
