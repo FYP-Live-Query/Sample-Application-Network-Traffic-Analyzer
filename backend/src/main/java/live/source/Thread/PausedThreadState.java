@@ -1,10 +1,5 @@
 package live.source.Thread;
 
-import live.source.Thread.AbstractThread;
-import live.source.Thread.RunningThreadState;
-import live.source.Thread.StoppedThreadState;
-import live.source.Thread.ThreadState;
-
 public class PausedThreadState extends ThreadState {
 
     public PausedThreadState(AbstractThread streamThread) {

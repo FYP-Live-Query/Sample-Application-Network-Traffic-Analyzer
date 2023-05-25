@@ -1,7 +1,5 @@
 package live.source.Thread;
 
-import live.source.Thread.AbstractThread;
-
 public abstract class ThreadState {
 
     protected AbstractThread thread;

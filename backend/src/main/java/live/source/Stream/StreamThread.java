@@ -1,11 +1,8 @@
 package live.source.Stream;
 
 import io.siddhi.core.stream.input.source.SourceEventListener;
-import live.source.Stream.ZmqClient.Subscriber;
 import live.source.Thread.AbstractThread;
 import lombok.Builder;
-import org.zeromq.ZContext;
-import org.zeromq.ZThread;
 
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -14,10 +11,9 @@ import java.util.logging.Logger;
 @Builder
 public class StreamThread extends AbstractThread {
     private final static Logger LOGGER = Logger.getGlobal();
-    private live.source.Stream.IStreamingEngine<String> IStreamingEngine;
+    private IStreamingEngine<String> IStreamingEngine;
     @Builder.Default private final Runtime JVMRuntime = Runtime.getRuntime();;
     private SourceEventListener sourceEventListener;
-    Subscriber subscriber;
 
     private void unsubscribe(){
         IStreamingEngine.unsubscribe();
@@ -46,13 +42,9 @@ public class StreamThread extends AbstractThread {
 
         this.subscribe();
 
-        Consumer<String> sourceEventListenerSiddhi = (msg)->{
+        Consumer<String> sourceEventListenerSiddhi = (msg)-> {
             sourceEventListener.onEvent(msg,null);
         };
-        subscriber = new Subscriber(sourceEventListenerSiddhi);
-
-//        ZContext ctx = new ZContext();
-//        ZThread.fork(ctx, new Subscriber(sourceEventListenerSiddhi));
 
         while(isThreadRunning){
 
@@ -63,7 +55,7 @@ public class StreamThread extends AbstractThread {
             IStreamingEngine.consumeMessage(sourceEventListenerSiddhi);
         }
 
-//         clean exit if thread is stopped
+        // clean exit if thread is stopped
         this.unsubscribe();
     }
 }

@@ -1,9 +1,6 @@
 package live.source.Thread;
 
 
-import live.source.Thread.AbstractThread;
-import live.source.Thread.ThreadState;
-
 public class StoppedThreadState extends ThreadState {
     public StoppedThreadState(AbstractThread streamThread) {
         super(streamThread);

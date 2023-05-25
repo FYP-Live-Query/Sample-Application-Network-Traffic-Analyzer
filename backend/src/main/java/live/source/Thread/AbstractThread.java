@@ -1,14 +1,12 @@
 package live.source.Thread;
 
-import live.source.Thread.RunningThreadState;
-import live.source.Thread.ThreadState;
 import live.utils.Monitor;
 
 public abstract class AbstractThread implements Runnable {
     protected final Monitor pauseMonitor;
     protected volatile boolean isThreadRunning = true;
     protected volatile boolean isPaused = false;
-    protected live.source.Thread.ThreadState threadState = new RunningThreadState(this);
+    protected ThreadState threadState = new RunningThreadState(this);
 
     public AbstractThread(){
         this.pauseMonitor = new Monitor();

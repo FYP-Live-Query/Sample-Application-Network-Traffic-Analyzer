@@ -1,6 +1,5 @@
 package live.source.Stream.PulsarClient;
 
-import live.source.Stream.PulsarClient.IPulsarClientBehavior;
 import lombok.Builder;
 import lombok.NonNull;
 import org.apache.pulsar.client.api.*;
