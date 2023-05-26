@@ -63,9 +63,11 @@ public class Controller {
 
     private final PersistenceStore persistenceStore;
     private final InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
-    private final List<Long> latencyValues = new ArrayList<>();
+    private final List<Long> latencyValues = new CopyOnWriteArrayList<>();
+
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
     private final AtomicInteger iterateID = new AtomicInteger(0);
+
     public Controller(MeterRegistry meterRegistry) throws UnknownHostException {
         this.persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
@@ -149,7 +151,7 @@ public class Controller {
 //        }
     }
 
-    private void writeLatencyValuesToCsv() {
+    private synchronized void writeLatencyValuesToCsv() {
         try {
             // Calculate average and 90th percentile of latency values
             double averageLatency = latencyValues.stream()
