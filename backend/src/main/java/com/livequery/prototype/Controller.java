@@ -193,31 +193,31 @@ public class Controller {
             // Shutdown the executor service when the program is exiting
             executorService.shutdown();
         }
-        public String getUserLocation() throws IOException {
-            String ipAddress = request.getRemoteAddr();
-//            String ipAddress = "20.51.237.16";
-            System.out.println("ip: "+ipAddress);
-            URL url = new URL("https://ipapi.co/" + ipAddress + "/json/");
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
+    public String getUserLocation() throws IOException {
+        String ipAddress = request.getRemoteAddr();
+//        String ipAddress = "20.51.237.16";
+        System.out.println("ip: "+ipAddress);
+        URL url = new URL("https://ipapi.co/" + ipAddress + "/json/");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
+        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        StringBuilder response = new StringBuilder();
+        String line;
 
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
-            }
-            reader.close();
-
-            JSONObject jsonObject = new JSONObject(response.toString());
-            String country = jsonObject.getString("country");
-//            String region = jsonObject.getString("region");
-//            String city = jsonObject.getString("city");
-//            String timeZone = jsonObject.getString("timezone");
-
-            return country;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
         }
+        reader.close();
+
+        JSONObject jsonObject = new JSONObject(response.toString());
+        String country = jsonObject.getString("country");
+//        String region = jsonObject.getString("region");
+//        String city = jsonObject.getString("city");
+//        String timeZone = jsonObject.getString("timezone");
+
+        return country;
+    }
 
     @PostMapping("/publish")
     @CrossOrigin

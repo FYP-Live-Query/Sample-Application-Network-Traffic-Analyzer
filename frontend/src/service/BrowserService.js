@@ -5,7 +5,7 @@ class BrowserService{
 
     postData(){
       return axios.post('http://localhost:8081/browserInfo', {
-        query: 'SELECT browser@string, eventtimestamp@long, initial_data@string FROM networktraffictable LIMIT 4',
+        query: 'SELECT browser@string, eventTimestamp@long FROM networkTraffic LIMIT 4',
         apiKey: localStorage.getItem('apiKey'),
         id: "QWERTY"
       });
