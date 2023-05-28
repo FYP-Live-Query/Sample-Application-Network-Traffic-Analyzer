@@ -113,17 +113,33 @@ public class Controller {
         persistenceStore.save(siddhiAppName,"table.name",siddhiApp.getTableName().getBytes());
         persistenceStore.save(siddhiAppName,"database.name","inventory".getBytes());
         SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiAppString);
+
+        String userId = "ZXCVB";
+        StringBuilder str1 = new StringBuilder("id-");
+        long start = System.currentTimeMillis();
+        str1.append(iterateID.incrementAndGet());
+        String uniqueId = str1.toString();
+        final long[] time = {System.currentTimeMillis()};
         siddhiAppRuntime.addCallback("SQL-SiddhiQL-dev-test", new QueryCallback() {
+
+
             @Override
             public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                String initial = "event[0].getData()[event[0].getData().length-1].toString()";
+//                            System.out.println("Initial: " + initial);
+                try {
+                    calculateLatency(inEvents, initial, time,uniqueId,start);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
 //                final long[] time = {System.currentTimeMillis()};
 //                try {
 //                    calculateLatency(inEvents, "initial", time, "id-1");
 //                } catch (IOException e) {
 //                    throw new RuntimeException(e);
 //                }
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
-                linkedBlockingQueue.add(inEvents);
+//                EventPrinter.print(timeStamp, inEvents, removeEvents);
+//                linkedBlockingQueue.add(inEvents);
 //                System.out.println("Event in Siddhi: " + inEvents.length + " ,  queueSize: " + linkedBlockingQueue.size());
             }
         });
@@ -262,27 +278,24 @@ public class Controller {
         Runnable emitterRunner = new Runnable() {
             @Override
             public void run() {
-
-                executor.execute(() -> {
-                    try {
-                        List<Object> responses = new ArrayList<>(5);
-                        while(true) {
-                            Event[] event = linkedBlockingQueue.take();
+                try {
+                    List<Object> responses = new ArrayList<>(5);
+                    while(true) {
+                        Event[] event = linkedBlockingQueue.take();
 //                            responses.add(event[0].getData());
-                            String initial = "event[0].getData()[event[0].getData().length-1].toString()";
+                        String initial = "event[0].getData()[event[0].getData().length-1].toString()";
 //                            System.out.println("Initial: " + initial);
-                            calculateLatency(event, initial, time,uniqueId,start);
+                        calculateLatency(event, initial, time,uniqueId,start);
 //                            System.out.println("Event in Backend: " + event[0].getData());
 //                            if (responses.size() == 5) {
 //                                sseEmitter.send(event);
 //                                responses.clear();
 //                                emitter.complete();
 //                            }
-                        }
-                    } catch (Exception ex) {
-                        sseEmitter.completeWithError(ex);
                     }
-                });
+                } catch (Exception ex) {
+                    sseEmitter.completeWithError(ex);
+                }
 
             }
         };
@@ -291,13 +304,13 @@ public class Controller {
             this.trafficUsers.get(userId).getSiddhiAppThread().stop();
         }
 
-        Thread siddhiAppThread = new Thread(siddhiAppRunner);
+        Thread siddhiAppThread = new Thread(siddhiAppRunner, "siddhiAppRunner");
         if (this.trafficUsers.containsKey(userId)) {
             this.trafficUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
         }
         siddhiAppThread.start();
-        Thread emitterThread = new Thread(emitterRunner);
-        emitterThread.start();
+//        Thread emitterThread = new Thread(emitterRunner, "emitterRunner");
+//        emitterThread.start();
         return sseEmitter;
     }
 
