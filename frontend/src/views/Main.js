@@ -45,6 +45,15 @@ function Main() {
       </ListItem>
 
       <Divider />
+
+      <ListItem button>
+        
+        <Link href="/order" underline="none">
+          <ListItemText style={{ display: "flex", justifyContent: "flex-start", justify: "center" }} primary="Order Management - Sample Application 02" />
+        </Link>
+      </ListItem>
+
+      <Divider />
       <ListItem button divider>
         
         <Link href="/editor" underline="none">
