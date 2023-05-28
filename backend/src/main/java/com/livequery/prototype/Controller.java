@@ -162,7 +162,7 @@ public class Controller {
         long traffic_latency = current - updatedTime;
         latencyValues.add(traffic_latency);
         meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
-        System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
+//        System.out.println("current: " + current + " updated_time: " + updatedTime + " traffic_latency: " + traffic_latency);
 //            }
 //        }
     }
@@ -194,18 +194,19 @@ public class Controller {
             csvWriter.append("\n");
             csvWriter.flush();
             csvWriter.close();
+            LOGGER.info("averageLatency" + averageLatency + "," + "percentile95Latency" + percentile95Latency + "," +"percentile99Latency" + percentile99Latency);
 
-            // Generate or obtain the CSV file
-            Path csvFilePath = Path.of("latency_values.csv");
-
-            // Specify the destination directory in the Docker volume
-            Path destinationDirectory = Path.of("/app");
-
-            // Create the directory if it doesn't exist
-            Files.createDirectories(destinationDirectory);
-
-            // Use Files.copy() to save the CSV file to the Docker volume
-            Files.copy(csvFilePath, destinationDirectory.resolve(csvFilePath.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+//            // Generate or obtain the CSV file
+//            Path csvFilePath = Path.of("latency_values.csv");
+//
+//            // Specify the destination directory in the Docker volume
+//            Path destinationDirectory = Path.of("/app");
+//
+//            // Create the directory if it doesn't exist
+//            Files.createDirectories(destinationDirectory);
+//
+//            // Use Files.copy() to save the CSV file to the Docker volume
+//            Files.copy(csvFilePath, destinationDirectory.resolve(csvFilePath.getFileName()), StandardCopyOption.REPLACE_EXISTING);
 
             // Clear the latency values list
             latencyValues.clear();
@@ -261,43 +262,36 @@ public class Controller {
         final long[] time = {System.currentTimeMillis()};
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
 
-        Runnable siddhiAppRunner = new Runnable() {
-
-            @Override
-            public void run() {
-                while (!trafficUsers.containsKey(userId)) {
+        Runnable siddhiAppRunner = () -> {
+            while (!trafficUsers.containsKey(userId)) {
 //                    Thread.onSpinWait();
-                }
-                String userQuery = trafficUsers.get(userId).getQuery();
-                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
-                trafficUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
-                siddhiAppRuntime.start();
             }
+            String userQuery = trafficUsers.get(userId).getQuery();
+            SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+            trafficUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
+            siddhiAppRuntime.start();
         };
         SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
-        Runnable emitterRunner = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    List<Object> responses = new ArrayList<>(5);
-                    while(true) {
-                        Event[] event = linkedBlockingQueue.take();
+        Runnable emitterRunner = () -> {
+            try {
+                List<Object> responses = new ArrayList<>(5);
+                while(true) {
+                    Event[] event = linkedBlockingQueue.take();
 //                            responses.add(event[0].getData());
-                        String initial = "event[0].getData()[event[0].getData().length-1].toString()";
+                    String initial = "event[0].getData()[event[0].getData().length-1].toString()";
 //                            System.out.println("Initial: " + initial);
-                        calculateLatency(event, initial, time,uniqueId,start);
+                    calculateLatency(event, initial, time,uniqueId,start);
 //                            System.out.println("Event in Backend: " + event[0].getData());
 //                            if (responses.size() == 5) {
 //                                sseEmitter.send(event);
 //                                responses.clear();
 //                                emitter.complete();
 //                            }
-                    }
-                } catch (Exception ex) {
-                    sseEmitter.completeWithError(ex);
                 }
-
+            } catch (Exception ex) {
+                sseEmitter.completeWithError(ex);
             }
+
         };
 
         if (this.trafficUsers.containsKey(userId) && this.trafficUsers.get(userId).getSiddhiAppThread() != null) {
