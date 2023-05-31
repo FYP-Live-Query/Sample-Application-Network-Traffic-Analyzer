@@ -1,7 +1,6 @@
 package live.source.Stream.ZmqClient;
 
 import live.source.Stream.IStreamingEngine;
-import live.source.Stream.ZmqClient.ActiveConsumerRecodHandling.ActiveMessageHandler;
 import lombok.Builder;
 import org.apache.tapestry5.json.JSONObject;
 import org.zeromq.SocketType;
@@ -23,21 +22,18 @@ public class ZMQSubscriber implements  IStreamingEngine<String>
     private String port;
     private String ZMQBrokerServer;
     @Builder.Default private final AtomicBoolean interrupted = new AtomicBoolean(false);
-    @Builder.Default private final ActiveMessageHandler<String> activeMessageHandler = new ActiveMessageHandler<>();;
     @Builder.Default private ZMQ.Socket subscriber = null;
     @Builder.Default private ZContext context = null;
 
     private void start()
     {
-        activeMessageHandler.setConsumer(consumer);
-        activeMessageHandler.start();
 
         while (!interrupted.get()) {
             String stringJsonMsg = subscriber.recvStr();
             JSONObject jsonObject = new JSONObject("{" + stringJsonMsg + "}");
             JSONObject newValue = ((JSONObject) (jsonObject.get(topic)));
             String value = newValue.toString();
-            activeMessageHandler.addMessage(value);
+            consumer.accept(value);
         }
 
         LOGGER.log(Level.INFO, String.format("Unsubscribed to ZMQ local broker topic [%s]", topic));
