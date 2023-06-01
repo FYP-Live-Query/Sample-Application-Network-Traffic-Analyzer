@@ -21,4 +21,6 @@ public abstract class ISource implements IAnnotation {
         return this;
     }
 
+    public abstract void setTableName(String tableName);
+
 }

@@ -25,6 +25,9 @@ public class SelectStatement implements ISelectStatement {
         selectItemsList.addAttribute(selectItem);
     }
 
+    public IAttributeList getSelectItems(){
+        return selectItemsList;
+    }
 
     @Override
     public String getSiddhiAppCompositeAsString() {

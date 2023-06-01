@@ -8,6 +8,7 @@ import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.SubJoin;
 
 // Middle engine is the one has coupling with Compiler.
 public class MiddleEngine extends IEngine {
@@ -17,6 +18,11 @@ public class MiddleEngine extends IEngine {
     @Override
     public void handleTable(Table table) {
         engineBehavior.handleTable(table);
+    }
+
+    @Override
+    public void handleJoin(SubJoin subJoin) {
+        engineBehavior.handleJoin(subJoin);
     }
 
     @Override
@@ -137,8 +143,8 @@ public class MiddleEngine extends IEngine {
     }
 
     @Override
-    public void addToSiddhiApp() {
-        engineBehavior.addToSiddhiApp();
+    public void addToSiddhiApp(String streamName) {
+        engineBehavior.addToSiddhiApp(streamName);
     }
 
     @Override

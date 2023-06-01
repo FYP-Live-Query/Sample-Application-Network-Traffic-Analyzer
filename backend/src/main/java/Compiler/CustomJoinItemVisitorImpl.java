@@ -5,10 +5,10 @@ import Engine.IEngine;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.*;
 
-public class CustomFromItemVisitorImpl implements FromItemVisitor {
+public class CustomJoinItemVisitorImpl implements FromItemVisitor{
     private IEngine middleEngine;
 
-    public CustomFromItemVisitorImpl(IEngine middleEngine) {
+    public CustomJoinItemVisitorImpl(IEngine middleEngine) {
         this.middleEngine = middleEngine;
     }
 
@@ -25,8 +25,7 @@ public class CustomFromItemVisitorImpl implements FromItemVisitor {
 
     @Override
     public void visit(SubJoin subJoin) {
-        middleEngine.setExpressionHandlingBehavior(new FromItemHandlingBehaviorEngine());
-        middleEngine.handleJoin(subJoin);
+        throw new UnsupportedOperationException("sub joins not supported");
     }
 
     @Override

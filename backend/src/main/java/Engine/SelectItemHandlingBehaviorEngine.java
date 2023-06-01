@@ -10,6 +10,7 @@ import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.SubJoin;
 
 import java.util.*;
 
@@ -39,6 +40,10 @@ public class SelectItemHandlingBehaviorEngine extends IEngineExpressionHandleBeh
     private String getDataType(){
         return ColumnNameAndDataTypeArr[DATA_TYPE_INDEX];
     }
+    @Override
+    public void handleJoin(SubJoin subJoin) {
+        throw new UnsupportedOperationException("Joins in select statement not supported.");
+    }
 
     private void tokenizeColumnName(String sqlColumnWithDataType){
         ColumnNameAndDataTypeArr = sqlColumnWithDataType.split("[@]", 0);
@@ -67,6 +72,7 @@ public class SelectItemHandlingBehaviorEngine extends IEngineExpressionHandleBeh
             siddhiApp.addColumnWithDataTypeToInputStreamDefinition(new ColumnWithDataType(siddhiColumn, dataType.getDataTypeSignature()));
         }
     }
+
 
     @Override
     public void handleFunctionExit(Function function) {
@@ -323,13 +329,15 @@ public class SelectItemHandlingBehaviorEngine extends IEngineExpressionHandleBeh
         }
 
     }
+
+
     Optional<SupportedDataTypes> dataType;
     @Override
-    public void addToSiddhiApp() {
+    public void addToSiddhiApp(String streamName) {
         // add column with data type for stream definition
         if(isHandledFunction && dataType.isPresent()){
             siddhiApp.addColumnWithDataTypeToOutputStreamDefinition(new ColumnWithDataType(siddhiColumn, dataType.get().getDataTypeSignature()));
-        }else {
+        } else if(Objects.equals(streamName, siddhiApp.getTableName())) {
             // you are here means this handled just a column (not a column name inside function) as select item
             // this is done at last because aliases handled last. we need to add that to the siddhiColumn too.
             siddhiApp.addColumnWithDataTypeToInputStreamDefinition(new ColumnWithDataType(siddhiColumn, getDataType()));
@@ -339,7 +347,24 @@ public class SelectItemHandlingBehaviorEngine extends IEngineExpressionHandleBeh
                 siddhiColumn = new SiddhiAppComposites.Column(siddhiColumn.getAlias(),null);
             }
             siddhiApp.addColumnWithDataTypeToOutputStreamDefinition(new ColumnWithDataType(siddhiColumn, getDataType()));
+        } else {
+            siddhiApp.addColumnWithDataTypeToJoinStreamDefinition(new ColumnWithDataType(siddhiColumn, getDataType()));
+            if (siddhiColumn.getAlias() == null){
+
+            }else{
+                siddhiColumn = new SiddhiAppComposites.Column(siddhiColumn.getAlias(),null);
+            }
+            siddhiApp.addColumnWithDataTypeToOutputStreamDefinition(new ColumnWithDataType(siddhiColumn, getDataType()));
         }
         siddhiApp.addSelectItem(selectItem); // add column with data type to select statement
+    }
+
+    public void addToSiddhiApp(Boolean joinStream) {
+        if (joinStream) {
+            siddhiApp.addColumnWithDataTypeToJoinStreamDefinition(new ColumnWithDataType(siddhiColumn, getDataType()));
+        } else {
+            siddhiApp.addColumnWithDataTypeToInputStreamDefinition(new ColumnWithDataType(siddhiColumn, getDataType()));
+        }
+
     }
 }

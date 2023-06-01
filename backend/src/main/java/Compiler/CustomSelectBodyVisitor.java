@@ -5,6 +5,7 @@ import Engine.IEngine;
 import Engine.SelectItemHandlingBehaviorEngine;
 import Engine.WhereExpressionHandlingBehaviorEngine;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.*;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
 
@@ -20,22 +21,36 @@ public class CustomSelectBodyVisitor implements SelectVisitor {
 
     @Override
     public void visit(PlainSelect plainSelect) {
+        FromItem fromItem = plainSelect.getFromItem();
+        if(fromItem != null) {
+            middleEngine.setExpressionHandlingBehavior(new FromItemHandlingBehaviorEngine());
+            fromItem.accept(new CustomFromItemVisitorImpl(middleEngine));
+        }
+
         List<SelectItem> selectItemList = plainSelect.getSelectItems();
         for(SelectItem selectItem : selectItemList){
             middleEngine.setExpressionHandlingBehavior(new SelectItemHandlingBehaviorEngine());
             selectItem.accept(new CustomSelectItemVisitorImpl(middleEngine));
-            middleEngine.addToSiddhiApp();
+            if (selectItem.toString().split("\\.").length == 2) {
+                middleEngine.addToSiddhiApp(selectItem.toString().split("\\.")[0]);
+            } else {
+                assert fromItem != null;
+                middleEngine.addToSiddhiApp(((Table) fromItem).getName());
+            }
+
         }
+
         // seem like distinct not supported by siddhiQL
         Distinct distinct = plainSelect.getDistinct();
         if(distinct != null) {
             distinct.getOnSelectItems();
         }
 
-        FromItem fromItem = plainSelect.getFromItem();
-        if(fromItem != null) {
+        if (plainSelect.getJoins() != null && plainSelect.getJoins().size() != 0) {
+            SubJoin rightJoin = new SubJoin();
+            rightJoin.setLeft(plainSelect.getJoins().get(0).getRightItem());
             middleEngine.setExpressionHandlingBehavior(new FromItemHandlingBehaviorEngine());
-            fromItem.accept(new CustomFromItemVisitorImpl(middleEngine));
+            rightJoin.accept(new CustomFromItemVisitorImpl(middleEngine));
         }
 
         Expression whereExpression = plainSelect.getWhere();

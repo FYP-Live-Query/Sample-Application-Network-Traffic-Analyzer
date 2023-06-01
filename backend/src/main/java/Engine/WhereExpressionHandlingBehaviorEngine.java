@@ -10,6 +10,7 @@ import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.SubJoin;
 
 import java.util.Stack;
 
@@ -28,6 +29,11 @@ public class WhereExpressionHandlingBehaviorEngine extends IEngineExpressionHand
     @Override
     public void handleTable(Table table) {
         throw new UnsupportedOperationException("Table names in where statement not supported.");
+    }
+
+    @Override
+    public void handleJoin(SubJoin subJoin) {
+        throw new UnsupportedOperationException("Joins in where statement not valid.");
     }
 
     private String getColumnName(){
@@ -189,7 +195,7 @@ public class WhereExpressionHandlingBehaviorEngine extends IEngineExpressionHand
     }
 
     @Override
-    public void addToSiddhiApp() {
+    public void addToSiddhiApp(String streamName) {
         throw new UnsupportedOperationException();
 
     }

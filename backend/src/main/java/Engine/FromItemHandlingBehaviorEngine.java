@@ -1,5 +1,6 @@
 package Engine;
 
+import SiddhiAppComposites.ColumnWithDataType;
 import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.arithmetic.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
@@ -8,6 +9,10 @@ import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.SubJoin;
+
+import java.util.Objects;
+
 public class FromItemHandlingBehaviorEngine extends IEngineExpressionHandleBehavior {
 
     public FromItemHandlingBehaviorEngine() {
@@ -19,10 +24,32 @@ public class FromItemHandlingBehaviorEngine extends IEngineExpressionHandleBehav
     }
 
     @Override
-    public void handleColumn(Column column) {
-        System.out.println("in FromItemHandlingBehaviorEngine column");
-        System.out.println(column.getColumnName());
+    public void handleJoin(SubJoin subJoin) {
+        siddhiApp.setRightJoin(subJoin.getLeft().toString()); // set table name as right join table
     }
+
+
+    @Override
+    public void handleColumn(Column column) {
+        String[] parts = column.getFullyQualifiedName().split("@");
+        if(parts.length != 2){
+            throw new IllegalArgumentException("provided column and data type format is " +
+                    "should be \"ColumnName@DataType\". but provided : " +
+                    "[" + column.getFullyQualifiedName() + "] in Select items");
+        }
+        siddhiApp.addOnExpressions(parts[0]);
+
+        if (Objects.equals(siddhiApp.getTableName(), parts[0].split("\\.")[0])) {
+            siddhiApp.addColumnWithDataTypeToInputStreamDefinition(new ColumnWithDataType
+                    (new SiddhiAppComposites.Column(parts[0].split("\\.")[1], null), parts[1]));
+        } else {
+            siddhiApp.addColumnWithDataTypeToJoinStreamDefinition(new ColumnWithDataType
+                    (new SiddhiAppComposites.Column(parts[0].split("\\.")[1], null), parts[1]));
+        }
+//        System.out.println("in FromItemHandlingBehaviorEngine column");
+//        System.out.println(column.getColumnName());
+    }
+
 
     @Override
     public void handleFunctionExit(Function function) {
@@ -166,7 +193,7 @@ public class FromItemHandlingBehaviorEngine extends IEngineExpressionHandleBehav
     }
 
     @Override
-    public void addToSiddhiApp() {
+    public void addToSiddhiApp(String streamName) {
 
     }
 }
