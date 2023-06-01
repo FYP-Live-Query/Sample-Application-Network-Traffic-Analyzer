@@ -19,14 +19,12 @@ import live.source.Stream.IStreamingEngine;
 import live.source.Stream.StreamThread;
 import live.source.Stream.ZmqClient.ZMQSubscriber;
 import live.source.Thread.AbstractThread;
+import live.utils.LiveExtensionConfig;
 import live.utils.LiveSourceConstants;
-import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * This is a sample class-level comment, explaining what the extension class does.
@@ -89,23 +87,13 @@ import java.util.UUID;
                         type = DataType.STRING
                 ),
                 @Parameter(
-                        name = "host.name",
-                        description = "The Hostname",
-                        type = DataType.STRING
-                ),
-                @Parameter(
-                        name = "api.key",
-                        description = "The api Key",
+                        name = "database.name",
+                        description = "Database name",
                         type = DataType.STRING
                 ),
                 @Parameter(
                         name = "table.name",
                         description = "Database table name",
-                        type = DataType.STRING
-                ),
-                @Parameter(
-                        name = "database.name",
-                        description = "Database name",
                         type = DataType.STRING
                 )
         },
@@ -123,11 +111,13 @@ import java.util.UUID;
 )
 // for more information refer https://siddhi.io/en/v5.0/docs/query-guide/#source
 public class LiveSource extends Source {
-    private static final Logger logger = LogManager.getLogger(LiveSource.class);
+    private static final Logger logger = Logger.getLogger(LiveSource.class);
     private String siddhiAppName;
     private String selectQuery;
-    private String databaseServerHostName;
-    private String apiKey;
+    private String databaseServerHostIp;
+    private int databaseServerHostPort;
+    private int kafkaServerHostPort;
+    private String kafkaServerHostIp;
     protected SourceEventListener sourceEventListener;
     private SiddhiContext siddhiContext;
     protected String[] requestedTransportPropertyNames;
@@ -135,8 +125,12 @@ public class LiveSource extends Source {
     private String fullQualifiedTableName;
     private AbstractThread dbThread;
     private IStreamingEngine<String> streamingClient;
-    private String serviceURLOfPulsarServer = "pulsar+ssl://%s:6651";
-    private String ZMQBrokerServer = "tcp://%s:%d";
+    private String databaseServerName;
+    private String ZMQBrokerServerHostIp;
+    private int ZMQBrokerServerHostPort;
+    private String databaseName;
+    private String tableName;
+
     /**
      * The initialization method for {@link Source}, will be called before other methods. It used to validate
      * all configurations and to get initial values.
@@ -157,18 +151,26 @@ public class LiveSource extends Source {
 
             Map<String, String> deploymentConfigMap = new HashMap();
             deploymentConfigMap.putAll(configReader.getAllConfigs());
-            siddhiAppName  =  siddhiAppContext.getName();
-            this.siddhiContext = siddhiAppContext.getSiddhiContext();
-            this.fullQualifiedTableName =
-                    new String(siddhiContext.getPersistenceStore().load(siddhiAppName,"database.name"), StandardCharsets.UTF_8) + "." +
-                            new String(siddhiContext.getPersistenceStore().load(siddhiAppName,"table.name"), StandardCharsets.UTF_8);
-            this.sourceEventListener = sourceEventListener;
-            this.selectQuery = optionHolder.validateAndGetOption(LiveSourceConstants.SQLQUERY).getValue();
-            this.databaseServerHostName = optionHolder.validateAndGetOption(LiveSourceConstants.HOSTNAME).getValue();
-            this.apiKey = optionHolder.validateAndGetOption(LiveSourceConstants.APIKEY).getValue();
+            LiveExtensionConfig liveExtensionConfig = new LiveExtensionConfig.LiveExtensionConfigBuilder().build();
             this.requestedTransportPropertyNames = requestedTransportPropertyNames.clone();
-            this.serviceURLOfPulsarServer = String.format(serviceURLOfPulsarServer, databaseServerHostName);
-            this.ZMQBrokerServer = String.format(ZMQBrokerServer,"localhost",5555);
+
+            this.siddhiAppName  =  siddhiAppContext.getName();
+            this.siddhiContext = siddhiAppContext.getSiddhiContext();
+            this.sourceEventListener = sourceEventListener;
+
+            this.tableName = optionHolder.validateAndGetOption(LiveSourceConstants.TABLENAME).getValue();
+            this.selectQuery = optionHolder.validateAndGetOption(LiveSourceConstants.SQLQUERY).getValue();
+
+            this.databaseName = liveExtensionConfig.getProperty("database.name");
+            this.databaseServerHostIp = liveExtensionConfig.getProperty("database.server.host.ip");
+            this.databaseServerHostPort = Integer.parseInt(liveExtensionConfig.getProperty("database.server.host.port"));
+            this.databaseServerName = liveExtensionConfig.getProperty("database.server.name");
+
+            this.kafkaServerHostIp = liveExtensionConfig.getProperty("kafka.server.host.ip");
+            this.kafkaServerHostPort = Integer.parseInt(liveExtensionConfig.getProperty("kafka.server.host.port"));
+
+            this.ZMQBrokerServerHostIp = liveExtensionConfig.getProperty("zmq.broker.server.host.ip");
+            this.ZMQBrokerServerHostPort = Integer.parseInt(liveExtensionConfig.getProperty("zmq.broker.server.host.port"));
 
         return null;
     }
@@ -205,25 +207,15 @@ public class LiveSource extends Source {
     @Override
     public void connect(ConnectionCallback connectionCallback , State state) throws ConnectionUnavailableException {
 
-        String uuid = UUID.randomUUID().toString();
+//        String uuid = UUID.randomUUID().toString();
 
         streamingClient = ZMQSubscriber.builder()
-                .topic("dbserver1." + this.fullQualifiedTableName)
-                .databaseServer(databaseServerHostName)
-                .ZMQBrokerServer(ZMQBrokerServer)
+                .topic(this.databaseServerName + "." + this.databaseName + "." + this.tableName)
+                .kafkaServerHostIp(kafkaServerHostIp)
+                .kafkaServerHostPort(kafkaServerHostPort)
+                .ZMQBrokerServerHostIp(ZMQBrokerServerHostIp)
+                .ZMQBrokerServerHostPort(ZMQBrokerServerHostPort)
                 .build();
-
-
-//        streamingClient = KafkaConsumerClient.<String,String>builder()
-//                            .bootstrap_server_config(hostName) // should we obtain hostname from Config management system?
-//                            .key_deserializer_class_config(StringDeserializer.class)
-//                            .value_deserializer_class_config(StringDeserializer.class)
-//                            .group_id_config("siddhi-io-live-group-" + uuid) // new subscriber should be in new group for multicasts subscription
-//                            .client_id_config("siddhi-io-live-group-client-" + uuid) // new subscriber should be in new group for multicasts subscriptio
-//                            .topic("dbserver1." + this.fullQualifiedTableName) // should add table name
-//                            .auto_offset_reset_config(AutoOffsetResetConfig.LATEST)
-//                            .activeConsumerRecordHandler(new ActiveConsumerRecordHandler<>())
-//                            .build();
 
 //        dbThread = DBThread.builder()
 //                            .sourceEventListener(sourceEventListener)
@@ -240,17 +232,7 @@ public class LiveSource extends Source {
                             .sourceEventListener(sourceEventListener)
                             .IStreamingEngine(streamingClient)
                             .build();
-        Thread threadCon = new Thread(consumerThread, "streaming thread");
-
-
-        threadCon.start();
-//        threadDB.start();
-        try {
-            threadCon.join();
-//            threadDB.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        consumerThread.run();
     }
 
     /**
@@ -282,6 +264,6 @@ public class LiveSource extends Source {
      */
     @Override
     public void disconnect() {
-
+        consumerThread.stop();
     }
 }
