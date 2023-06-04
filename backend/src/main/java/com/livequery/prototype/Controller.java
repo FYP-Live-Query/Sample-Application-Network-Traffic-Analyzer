@@ -2,25 +2,21 @@ package com.livequery.prototype;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
-import java.nio.file.StandardCopyOption;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.siddhi.core.SiddhiAppRuntime;
 import io.siddhi.core.SiddhiManager;
 import io.siddhi.core.query.output.callback.QueryCallback;
-import io.siddhi.core.util.EventPrinter;
 import io.siddhi.core.util.persistence.InMemoryPersistenceStore;
 import io.siddhi.core.util.persistence.PersistenceStore;
 import io.siddhi.core.event.Event;
 import io.siddhi.extension.map.json.sourcemapper.JsonSourceMapper;
 import io.micrometer.core.instrument.MeterRegistry;
+import live.source.LiveSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -57,6 +53,9 @@ public class Controller {
     private MeterRegistry meterRegistry;
     private HashMap<String, UserInfo> trafficUsers;
     private HashMap<String, UserInfo> browserUsers;
+    private HashMap<String, UserInfo> orderUsers = new HashMap<>();
+    private final SseEmitter[] sseEmitters = new SseEmitter[9000];
+    private int ssesReqs = 0;
 
     private HashMap<String, UserInfo> anyQueryUsers;
     String TIME_SERVER = "time-a.nist.gov";
@@ -72,11 +71,12 @@ public class Controller {
         this.persistenceStore = new InMemoryPersistenceStore();
         this.siddhiManager = new SiddhiManager();
         this.siddhiManager.setPersistenceStore(persistenceStore);
-        this.siddhiManager.setExtension("live", live.source.LiveSource.class);
+        this.siddhiManager.setExtension("io/siddhi/extension/io/live", LiveSource.class);
         this.siddhiManager.setExtension("map-json", JsonSourceMapper.class);
         this.meterRegistry = meterRegistry;
         this.trafficUsers = new HashMap<>();
         this.browserUsers = new HashMap<>();
+        this.orderUsers = new HashMap<>();
         this.anyQueryUsers = new HashMap<>();
         executorService.scheduleAtFixedRate(this::writeLatencyValuesToCsv, 1, 1, TimeUnit.MINUTES);
     }
@@ -92,7 +92,7 @@ public class Controller {
         return sseEmitter;
     }
 
-    private SiddhiAppRuntime getSiddhiAppRuntime(LinkedBlockingQueue<Event[]> linkedBlockingQueue, String query) {
+    private SiddhiAppRuntime getSiddhiAppRuntime(SseEmitter[] sseEmitters, String query, int ssesReqs) {
         String siddhiAppName ="SiddhiApp-dev-test";
         SiddhiApp siddhiApp = SiddhiAppGenerator.generateSiddhiApp(
                 siddhiAppName,
@@ -110,8 +110,8 @@ public class Controller {
 
         String siddhiAppString = siddhiApp.getSiddhiAppStringRepresentation();
         System.out.println(siddhiAppString);
-        persistenceStore.save(siddhiAppName,"table.name",siddhiApp.getTableName().getBytes());
-        persistenceStore.save(siddhiAppName,"database.name","inventory".getBytes());
+//        persistenceStore.save(siddhiAppName,"table.name",siddhiApp.getTableName().getBytes());
+//        persistenceStore.save(siddhiAppName,"database.name","inventory".getBytes());
         SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiAppString);
 
         String userId = "ZXCVB";
@@ -126,6 +126,8 @@ public class Controller {
                 String initial = "event[0].getData()[event[0].getData().length-1].toString()";
                 try {
                     calculateLatency(inEvents, initial, time,uniqueId,start);
+                    System.out.println(inEvents[0].getData());
+                    sseEmitters[ssesReqs].send(inEvents[0].getData());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -186,7 +188,9 @@ public class Controller {
         System.out.println("Query: "+ userInfo.getQuery());
         System.out.println("API: "+ userInfo.getApiKey());
         System.out.println("ID: "+ userInfo.getId());
-        this.trafficUsers.put(userInfo.getId(), userInfo);
+        System.out.println(userInfo.getId());
+//        this.trafficUsers.put(userInfo.getId(), userInfo);
+        this.orderUsers.put(userInfo.getId(), userInfo);
         return userInfo;
     }
 
@@ -210,6 +214,82 @@ public class Controller {
         return userInfo;
     }
 
+    @GetMapping("/orderInfo")
+    @CrossOrigin
+    public SseEmitter orderData() throws CredentialException, IOException, InterruptedException {
+        String userId = "ZXCVB";
+        sseEmitters[++ssesReqs] = new SseEmitter(Long.MAX_VALUE);
+
+        String userQuery = orderUsers.get(userId).getQuery();
+        SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(sseEmitters, userQuery, ssesReqs);
+        orderUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
+        siddhiAppRuntime.start();
+
+        return sseEmitters[ssesReqs];
+//        String userId = "ZXCVB";
+//        StringBuilder str1 = new StringBuilder("id-");
+//        long start =System.currentTimeMillis();
+//        str1.append(iterateID.incrementAndGet());
+//        String uniqueId = str1.toString();
+//
+//        final long[] time = {System.currentTimeMillis()};
+//        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
+//
+//        Runnable siddhiAppRunner = new Runnable() {
+//
+//            @Override
+//            public void run() {
+//                while (!orderUsers.containsKey(userId)) {
+////                    Thread.onSpinWait();
+//                }
+//                String userQuery = orderUsers.get(userId).getQuery();
+//                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+//                orderUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
+//                siddhiAppRuntime.start();
+//            }
+//        };
+//        SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
+//        Runnable emitterRunner = new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                executor.execute(() -> {
+//                    try {
+//                        List<Object> responses = new ArrayList<>(5);
+//                        while(true) {
+//                            Event[] event = linkedBlockingQueue.take();
+////                            responses.add(event[0].getData());
+//                            String initial = "event[0].getData()[event[0].getData().length-1].toString()";
+////                            System.out.println("Initial: " + initial);
+//                            calculateLatency(event, initial, time,uniqueId,start);
+////                            System.out.println("Event in Backend: " + event[0].getData());
+////                            if (responses.size() == 5) {
+////                                sseEmitter.send(event);
+////                                responses.clear();
+////                                emitter.complete();
+////                            }
+//                        }
+//                    } catch (Exception ex) {
+//                        sseEmitter.completeWithError(ex);
+//                    }
+//                });
+//
+//            }
+//        };
+//
+//        if (this.orderUsers.containsKey(userId) && this.orderUsers.get(userId).getSiddhiAppThread() != null) {
+//            this.orderUsers.get(userId).getSiddhiAppThread().stop();
+//        }
+//
+//        Thread siddhiAppThread = new Thread(siddhiAppRunner);
+//        if (this.orderUsers.containsKey(userId)) {
+//            this.orderUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
+//        }
+//        siddhiAppThread.start();
+//        Thread emitterThread = new Thread(emitterRunner);
+//        emitterThread.start();
+//        return sseEmitter;
+    }
 
     @GetMapping("/traffic")
     @CrossOrigin
@@ -223,15 +303,15 @@ public class Controller {
         final long[] time = {System.currentTimeMillis()};
         LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
 
-        Runnable siddhiAppRunner = () -> {
-            while (!trafficUsers.containsKey(userId)) {
-//                    Thread.onSpinWait();
-            }
-            String userQuery = trafficUsers.get(userId).getQuery();
-            SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
-            trafficUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
-            siddhiAppRuntime.start();
-        };
+//        Runnable siddhiAppRunner = () -> {
+//            while (!trafficUsers.containsKey(userId)) {
+////                    Thread.onSpinWait();
+//            }
+//            String userQuery = trafficUsers.get(userId).getQuery();
+//            SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+//            trafficUsers.get(userId).setSiddhiAppRuntime(siddhiAppRuntime);
+//            siddhiAppRuntime.start();
+//        };
         SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
 //        Runnable emitterRunner = () -> {
 //            try {
@@ -252,81 +332,81 @@ public class Controller {
 //            }
 //        };
 
-        if (this.trafficUsers.containsKey(userId) && this.trafficUsers.get(userId).getSiddhiAppThread() != null) {
-            this.trafficUsers.get(userId).getSiddhiAppThread().stop();
-        }
-
-        Thread siddhiAppThread = new Thread(siddhiAppRunner, "siddhiAppRunner");
-        if (this.trafficUsers.containsKey(userId)) {
-            this.trafficUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
-        }
-        siddhiAppThread.start();
+//        if (this.trafficUsers.containsKey(userId) && this.trafficUsers.get(userId).getSiddhiAppThread() != null) {
+//            this.trafficUsers.get(userId).getSiddhiAppThread().stop();
+//        }
+//
+//        Thread siddhiAppThread = new Thread(siddhiAppRunner, "siddhiAppRunner");
+//        if (this.trafficUsers.containsKey(userId)) {
+//            this.trafficUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
+//        }
+//        siddhiAppThread.start();
         return sseEmitter;
     }
 
     @GetMapping("/browsers")
     @CrossOrigin
     public SseEmitter browserData(String userId) throws CredentialException, IOException, InterruptedException {
-        final long[] time = {System.currentTimeMillis()};
-        long start =System.currentTimeMillis();
-        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
+//        final long[] time = {System.currentTimeMillis()};
+//        long start =System.currentTimeMillis();
+//        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
         SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
-
-        Runnable siddhiAppRunner = new Runnable() {
-
-            @Override
-            public void run() {
-                while (!browserUsers.containsKey(userId)) {
-//                    Thread.onSpinWait();
-                }
-                String userQuery = browserUsers.get(userId).getQuery();
-                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
-                siddhiAppRuntime.start();
-            }
-        };
-
-        Runnable emitterRunner = new Runnable() {
-            @Override
-            public void run() {
-
-                executor.execute(() -> {
-                    try {
-                        List<Object> responses = new ArrayList<>(4);
-                        while(true) {
-                            Event[] event = linkedBlockingQueue.take();
-                            System.out.println("Browser Data: " + event[0].getData());
-                            responses.add(event[0].getData());
-                            String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            System.out.println("Browser Latencies");
-                            calculateLatency(event, initial, time,userId,start);
-                            System.out.println("...............");
-                            if (responses.size() == 4) {
-                                sseEmitter.send(responses);
-                                responses.clear();
-//                                emitter.complete();
-                            }
-                        }
-
-
-                    } catch (Exception ex) {
-                        sseEmitter.completeWithError(ex);
-                    }
+//
+//        Runnable siddhiAppRunner = new Runnable() {
+//
+//            @Override
+//            public void run() {
+//                while (!browserUsers.containsKey(userId)) {
+////                    Thread.onSpinWait();
+//                }
+//                String userQuery = browserUsers.get(userId).getQuery();
+//                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+//                siddhiAppRuntime.start();
 //            }
-                });
-
-            }
-        };
-
-        if (this.browserUsers.containsKey(userId) && this.browserUsers.get(userId).getSiddhiAppThread() != null) {
-            this.browserUsers.get(userId).getSiddhiAppThread().stop();
-        }
-        Thread siddhiAppThread = new Thread(siddhiAppRunner);
-        if (this.browserUsers.containsKey(userId)) {
-            this.browserUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
-        }
-        Thread emitterThread = new Thread(emitterRunner);
-        siddhiAppThread.start();
-        emitterThread.start();
+//        };
+//
+//        Runnable emitterRunner = new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                executor.execute(() -> {
+//                    try {
+//                        List<Object> responses = new ArrayList<>(4);
+//                        while(true) {
+//                            Event[] event = linkedBlockingQueue.take();
+//                            System.out.println("Browser Data: " + event[0].getData());
+//                            responses.add(event[0].getData());
+//                            String initial = event[0].getData()[event[0].getData().length-1].toString();
+//                            System.out.println("Browser Latencies");
+//                            calculateLatency(event, initial, time,userId,start);
+//                            System.out.println("...............");
+//                            if (responses.size() == 4) {
+//                                sseEmitter.send(responses);
+//                                responses.clear();
+////                                emitter.complete();
+//                            }
+//                        }
+//
+//
+//                    } catch (Exception ex) {
+//                        sseEmitter.completeWithError(ex);
+//                    }
+////            }
+//                });
+//
+//            }
+//        };
+//
+//        if (this.browserUsers.containsKey(userId) && this.browserUsers.get(userId).getSiddhiAppThread() != null) {
+//            this.browserUsers.get(userId).getSiddhiAppThread().stop();
+//        }
+//        Thread siddhiAppThread = new Thread(siddhiAppRunner);
+//        if (this.browserUsers.containsKey(userId)) {
+//            this.browserUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
+//        }
+//        Thread emitterThread = new Thread(emitterRunner);
+//        siddhiAppThread.start();
+//        emitterThread.start();
 
         return sseEmitter;
     }
@@ -335,59 +415,59 @@ public class Controller {
     @CrossOrigin
     public SseEmitter anyQueryData(String userId) throws CredentialException, IOException, InterruptedException {
 
-        final long[] time = {System.currentTimeMillis()};
-        long start =System.currentTimeMillis();
-        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
+//        final long[] time = {System.currentTimeMillis()};
+//        long start =System.currentTimeMillis();
+//        LinkedBlockingQueue<Event[]> linkedBlockingQueue = new LinkedBlockingQueue<>();
         SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE);
-        Runnable siddhiAppRunner = new Runnable() {
-
-            @Override
-            public void run() {
-                while (!anyQueryUsers.containsKey(userId)) {
-//                    Thread.onSpinWait();
-                }
-                String userQuery = anyQueryUsers.get(userId).getQuery();
-                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
-                System.out.println("queue1: "+linkedBlockingQueue.size());
-                siddhiAppRuntime.start();
-            }
-        };
-
-        Runnable emitterRunner = new Runnable() {
-            @Override
-            public void run() {
-
-                executor.execute(() -> {
-                    try {
-                        while(true) {
-                            System.out.println("queue"+linkedBlockingQueue.size());
-                            Event[] event = linkedBlockingQueue.take();
-                            System.out.println("event arrived");
-//                            String initial = event[0].getData()[event[0].getData().length-1].toString();
-                            calculateLatency(event, "", time,"query.latency",start);
-
-                            sseEmitter.send(event[0].getData());
-//                                emitter.complete();
-                        }
-                    } catch (Exception ex) {
-                        sseEmitter.completeWithError(ex);
-                    }
+//        Runnable siddhiAppRunner = new Runnable() {
+//
+//            @Override
+//            public void run() {
+//                while (!anyQueryUsers.containsKey(userId)) {
+////                    Thread.onSpinWait();
+//                }
+//                String userQuery = anyQueryUsers.get(userId).getQuery();
+//                SiddhiAppRuntime siddhiAppRuntime = getSiddhiAppRuntime(linkedBlockingQueue, userQuery);
+//                System.out.println("queue1: "+linkedBlockingQueue.size());
+//                siddhiAppRuntime.start();
 //            }
-                });
-
-            }
-        };
-
-        if (this.anyQueryUsers.containsKey(userId) && this.anyQueryUsers.get(userId).getSiddhiAppThread() != null) {
-            this.anyQueryUsers.get(userId).getSiddhiAppThread().stop();
-        }
-        Thread siddhiAppThread = new Thread(siddhiAppRunner);
-        if (this.anyQueryUsers.containsKey(userId)) {
-            this.anyQueryUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
-        }
-        Thread emitterThread = new Thread(emitterRunner);
-        siddhiAppThread.start();
-        emitterThread.start();
+//        };
+//
+//        Runnable emitterRunner = new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                executor.execute(() -> {
+//                    try {
+//                        while(true) {
+//                            System.out.println("queue"+linkedBlockingQueue.size());
+//                            Event[] event = linkedBlockingQueue.take();
+//                            System.out.println("event arrived");
+////                            String initial = event[0].getData()[event[0].getData().length-1].toString();
+//                            calculateLatency(event, "", time,"query.latency",start);
+//
+//                            sseEmitter.send(event[0].getData());
+////                                emitter.complete();
+//                        }
+//                    } catch (Exception ex) {
+//                        sseEmitter.completeWithError(ex);
+//                    }
+////            }
+//                });
+//
+//            }
+//        };
+//
+//        if (this.anyQueryUsers.containsKey(userId) && this.anyQueryUsers.get(userId).getSiddhiAppThread() != null) {
+//            this.anyQueryUsers.get(userId).getSiddhiAppThread().stop();
+//        }
+//        Thread siddhiAppThread = new Thread(siddhiAppRunner);
+//        if (this.anyQueryUsers.containsKey(userId)) {
+//            this.anyQueryUsers.get(userId).setSiddhiAppThread(siddhiAppThread);
+//        }
+//        Thread emitterThread = new Thread(emitterRunner);
+//        siddhiAppThread.start();
+//        emitterThread.start();
         return sseEmitter;
     }
 
