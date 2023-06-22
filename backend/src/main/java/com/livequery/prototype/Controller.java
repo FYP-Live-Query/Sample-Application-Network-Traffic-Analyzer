@@ -126,7 +126,6 @@ public class Controller {
                 String initial = "event[0].getData()[event[0].getData().length-1].toString()";
                 try {
                     calculateLatency(inEvents, initial, time,uniqueId,start);
-                    System.out.println(inEvents[0].getData());
                     sseEmitters[ssesReqs].send(inEvents[0].getData());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -142,6 +141,7 @@ public class Controller {
         long traffic_latency = current - updatedTime;
         latencyValues.add(traffic_latency);
         meterRegistry.timer(prometheus_query).record(Duration.ofMillis(traffic_latency));
+        System.out.printf("single request latency : %d",traffic_latency);
     }
 
     private synchronized void writeLatencyValuesToCsv() {
